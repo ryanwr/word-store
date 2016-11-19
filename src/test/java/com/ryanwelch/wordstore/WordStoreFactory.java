@@ -1,3 +1,5 @@
+package com.ryanwelch.wordstore;
+
 /**
  * Copyright 2016 (C) Ryan Welch
  *

@@ -1,3 +1,5 @@
+package com.ryanwelch.wordstore;
+
 import java.util.*;
 
 public class WordGen {
