@@ -52,9 +52,10 @@ public class WordStoreHashTableImp implements WordStore {
         for(int i = 0; i < array.length; i++) {
             WordNode node = array[i];
             WordNode nextNode;
-            while(node != null) {
 
+            while(node != null) {
                 int newIndex = getIndex(node.getWord(), newArray.length);
+
                 if(newArray[newIndex] == null) { // If empty place in array set the node
                     newArray[newIndex] = node;
                 } else { // If there is a collision, add to the end of the linked list
@@ -94,57 +95,49 @@ public class WordStoreHashTableImp implements WordStore {
         return items;
     }
 
-    /**
-     * Adds or increments a word in a list
-     * @param word
-     * @param node
-     */
-    private void add(String word, WordNode node) {
-        if(word.equals(node.getWord())) node.incrementCount();
-        else if(node.hasNextNode()) add(word, node.getNextNode());
-        else {
-            node.setNextNode(new WordNode(word));
-            collisions++;
-            items++;
-        }
-    }
-
     @Override
     public void add(String word) {
         resize(); // Resize if needed
 
         int position = getIndex(word, array.length);
-        if(array[position] == null) {
+
+        if(array[position] == null) { // Create start of linked list as this node
             array[position] = new WordNode(word);
             items++;
-        } else {
-            add(word, array[position]);
-        }
-    }
+        } else { // Insert node at end of linked list, or increment count if word is in linked list
+            WordNode node = array[position];
 
-    private int getCount(String word, WordNode node) {
-        if(word.equals(node.getWord())) return node.getCount();
-        else if(node.hasNextNode()) return getCount(word, node.getNextNode());
-        else return 0;
+            while(node != null) {
+                if(word.equals(node.getWord())) {
+                    node.incrementCount();
+                    break;
+                } else if(!node.hasNextNode()) {
+                    node.setNextNode(new WordNode(word));
+                    collisions++;
+                    items++;
+                    break;
+                }
+
+                node = node.getNextNode();
+            }
+        }
     }
 
     @Override
     public int count(String word) {
         int position = getIndex(word, array.length);
-        return array[position] == null ? 0 : getCount(word, array[position]);
-    }
 
-    private void remove(String word, WordNode node, WordNode parent) {
-        if(word.equals(node.getWord())) {
-            if(node.getCount() > 1) {
-                node.decrementCount();
-            } else {
-                parent.setNextNode(node.getNextNode());
-                items--;
+        if(array[position] != null) {
+            WordNode node = array[position];
+
+            while(node != null) {
+                if(word.equals(node.getWord())) return node.getCount();
+
+                node = node.getNextNode();
             }
-        } else if(node.hasNextNode()) {
-            remove(word, node.getNextNode(), node);
         }
+
+        return 0;
     }
 
     @Override
@@ -152,11 +145,28 @@ public class WordStoreHashTableImp implements WordStore {
         //resize(); // Resize if needed
 
         int position = getIndex(word, array.length);
-        if(array[position] == null) return;
 
-        tempParent.setNextNode(array[position]);
-        remove(word, array[position], tempParent);
-        array[position] = tempParent.getNextNode();
+        if(array[position] != null) {
+            WordNode parent = null;
+            WordNode node = array[position];
+
+            while(node != null) {
+                if(word.equals(node.getWord())) {
+                    if(node.getCount() > 1) {
+                        node.decrementCount();
+                        break;
+                    } else {
+                        if(parent != null) parent.setNextNode(node.getNextNode());
+                        else array[position] = node.getNextNode();
+                        items--;
+                        break;
+                    }
+                }
+
+                parent = node;
+                node = node.getNextNode();
+            }
+        }
     }
 
     private class WordNode {

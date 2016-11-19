@@ -48,8 +48,9 @@ public class WordTest {
         if(wordStore instanceof WordStoreHashTableImp) {
             WordStoreHashTableImp wordStoreHT = (WordStoreHashTableImp) wordStore;
             System.out.println("Collision rate: " + wordStoreHT.getCollisionRate() + "%");
-            System.out.println("Collision number: " + wordStoreHT.getNumberOfCollisions());
-            System.out.println("Items number: " + wordStoreHT.getNumberOfItems());
+            System.out.println("Collisions: " + wordStoreHT.getNumberOfCollisions());
+            System.out.println("Items: " + wordStoreHT.getNumberOfItems());
+            System.out.println();
         }
 
         return end-start;
