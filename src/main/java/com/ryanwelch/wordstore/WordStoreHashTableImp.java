@@ -1,5 +1,7 @@
 package com.ryanwelch.wordstore;
 
+import java.nio.ByteBuffer;
+
 /**
  * Copyright 2016 (C) Ryan Welch
  *
@@ -7,36 +9,34 @@ package com.ryanwelch.wordstore;
  */
 public class WordStoreHashTableImp implements WordStore {
 
-    private static final float MAX_LOAD_FACTOR = 3/4;
+    private static final float MAX_LOAD_FACTOR = 0.7f;
+
+    private static final int FNV1_32_INIT = 0x811c9dc5;
+    private static final int FNV1_PRIME_32 = 16777619;
 
     private WordNode[] array;
-    private WordNode tempParent;
     private int items;
+    private int minSize;
 
-    private int collisions = 0;
+    private int collisions = 0; // debug
 
-    public WordStoreHashTableImp(int initialArraySize) {
-        this.array = new WordNode[getNextPowerOf2(initialArraySize)];
+
+    public WordStoreHashTableImp(int minSize) {
+        this.array = new WordNode[getNextPowerOf2(minSize)];
+        this.minSize = minSize;
         this.items = 0;
-        this.tempParent = new WordNode();
     }
 
     public WordStoreHashTableImp() {
         this(8);
     }
 
-    // Taken from http://stackoverflow.com/a/1322548
     private int getNextPowerOf2(int n) {
-        n--;
-        n |= n >> 1;   // Divide by 2^k for consecutive doublings of k up to 32,
-        n |= n >> 2;   // and then or the results.
-        n |= n >> 4;
-        n |= n >> 8;
-        n |= n >> 16;
-        n++;            // The result is a number of 1 bits equal to the number
-                        // of bits in the original number, plus 1. That's the
-                        // next highest power of 2.
-        return n;
+        int res = 1;
+        while (res < n) {
+            res = res << 1;
+        }
+        return res;
     }
 
     /**
@@ -47,6 +47,8 @@ public class WordStoreHashTableImp implements WordStore {
         if(loadFactor <= MAX_LOAD_FACTOR) return; // No need to resize
 
         WordNode[] newArray = new WordNode[2 * array.length];
+
+        collisions = 0; // debug
 
         // Move all nodes to their new positions, and relink collisions
         for(int i = 0; i < array.length; i++) {
@@ -67,6 +69,8 @@ public class WordStoreHashTableImp implements WordStore {
                         }
                         listNode = listNode.getNextNode();
                     }
+
+                    collisions++; // debug
                 }
 
                 nextNode = node.getNextNode();
@@ -78,19 +82,78 @@ public class WordStoreHashTableImp implements WordStore {
         array = newArray;
     }
 
-    private int getIndex(String word, int size) {
-        //return word.hashCode() % size; // Simple modulus
-        return word.hashCode() & (size-1); // Requires table to be a PoT
+    /**
+     * FNV hash
+     */
+    private int hashFNV(byte[] data) {
+        int hash = FNV1_32_INIT; // Initial value specified by FNV1
+        for (int i = 0; i < data.length; i++) { // Loop through every byte in the integer
+            hash ^= (data[i] & 0xff);
+            hash *= FNV1_PRIME_32; // Prime multiplication constant specified by FNV1
+        }
+        return hash;
     }
 
+    /**
+     * FNV hash
+     */
+    private int hashFNV(int data) {
+        int hash = FNV1_32_INIT; // Initial value specified by FNV1
+        for (int i = 0; i < 4; i++) { // Loop through every byte in the integer
+            hash ^= (data & 0xff); // Bitwise exclusive or the next byte onto the hash result
+            hash *= FNV1_PRIME_32; // Prime multiplication constant specified by FNV1
+            data = data >>> 8; // Shift to next byte
+        }
+        return hash;
+    }
+
+    /**
+     * Dijb2 hash
+     */
+    private int hashDijb2(byte[] data) {
+        int hash = 5381;
+
+        for(byte b : data) {
+            hash = ((hash << 5) + hash) + b; /* hash * 33 + b */
+        }
+
+        return hash;
+    }
+
+    private int getIndex(String word, int size) {
+        // Default hashmap implementation
+//        int hash = word.hashCode();
+//        hash ^= (hash >>> 20) ^ (hash >>> 12);
+//        hash ^= (hash >>> 7) ^ (hash >>> 4);
+
+        // FNV with hashcode
+//        int hash = word.hashCode();
+//        hash = hashFNV(hash);
+
+        // Pure FNV
+        byte[] data = new byte[word.length()];
+        word.getBytes(0, word.length(), data, 0);
+        int hash = hashFNV(data);
+
+        // Dijb2
+//        byte[] data = new byte[word.length()];
+//        word.getBytes(0, word.length(), data, 0);
+//        int hash = hashDijb2(data);
+
+        return hash & (size-1); // Requires table to be a PoT
+    }
+
+    // debug
     public int getCollisionRate() {
         return (int) (((float) collisions/ (float) items) * 100.0f);
     }
 
+    // debug
     public int getNumberOfCollisions() {
         return collisions;
     }
 
+    // debug
     public int getNumberOfItems() {
         return items;
     }
@@ -113,7 +176,7 @@ public class WordStoreHashTableImp implements WordStore {
                     break;
                 } else if(!node.hasNextNode()) {
                     node.setNextNode(new WordNode(word));
-                    collisions++;
+                    collisions++; // debug
                     items++;
                     break;
                 }
@@ -156,8 +219,12 @@ public class WordStoreHashTableImp implements WordStore {
                         node.decrementCount();
                         break;
                     } else {
-                        if(parent != null) parent.setNextNode(node.getNextNode());
-                        else array[position] = node.getNextNode();
+                        if(parent != null) {
+                            parent.setNextNode(node.getNextNode());
+                            collisions--; // debug
+                        } else {
+                            array[position] = node.getNextNode();
+                        }
                         items--;
                         break;
                     }

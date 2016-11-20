@@ -16,19 +16,19 @@ public class WordTest {
         WordStoreFactory wordStoreFactory = new WordStoreFactory(WordStoreFactory.WordStoreType.HASH_TABLE);
 
 
-        int[] sizes = new int[]{1000, 100000, 1000000, 10000000};
+        int[] sizes = new int[]{1000, 100000, 1000000};
 
         for(int size : sizes) {
-            System.out.println("\nTime taken for size of " + size);
+            System.out.println("\n===============================\nTime taken for size of " + size);
             long time;
 
-            time = addWordsToEmpty(wordStoreFactory.get(), new WordGen(seed), size) / 1000000;
+            time = addWordsToEmpty(wordStoreFactory.get(size), new WordGen(seed), size) / 1000000;
             System.out.println("Add words to empty store - " + time + "ms");
-            time = addWords(wordStoreFactory.get(), new WordGen(seed), size, 10000) / 1000000;
+            time = addWords(wordStoreFactory.get(size), new WordGen(seed), size, 10000) / 1000000;
             System.out.println("Add words non empty store - " + time + "ms");
-            time = countWords(wordStoreFactory.get(), new WordGen(seed), size, 10000) / 1000000;
+            time = countWords(wordStoreFactory.get(size), new WordGen(seed), size, 10000) / 1000000;
             System.out.println("Count words in store - " + time + "ms");
-            time = removeWords(wordStoreFactory.get(), new WordGen(seed), size, 10000) / 1000000;
+            time = removeWords(wordStoreFactory.get(size), new WordGen(seed), size, 10000) / 1000000;
             System.out.println("Remove words from store - " + time + "ms");
         }
 
@@ -47,9 +47,8 @@ public class WordTest {
 
         if(wordStore instanceof WordStoreHashTableImp) {
             WordStoreHashTableImp wordStoreHT = (WordStoreHashTableImp) wordStore;
+            System.out.println("Collisions: " + wordStoreHT.getNumberOfCollisions() + " - Items: " + wordStoreHT.getNumberOfItems());
             System.out.println("Collision rate: " + wordStoreHT.getCollisionRate() + "%");
-            System.out.println("Collisions: " + wordStoreHT.getNumberOfCollisions());
-            System.out.println("Items: " + wordStoreHT.getNumberOfItems());
             System.out.println();
         }
 
