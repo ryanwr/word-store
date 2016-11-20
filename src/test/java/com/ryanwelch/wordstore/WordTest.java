@@ -1,5 +1,8 @@
 package com.ryanwelch.wordstore;
 
+import java.io.FileWriter;
+import java.io.IOError;
+import java.io.IOException;
 import java.util.Scanner;
 
 /**
@@ -9,28 +12,59 @@ import java.util.Scanner;
  */
 public class WordTest {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         Scanner input = new Scanner(System.in);
+        StringBuilder csvOutput = new StringBuilder();
         System.out.println("Enter seed: ");
         long seed = input.nextLong();
-        WordStoreFactory wordStoreFactory = new WordStoreFactory(WordStoreFactory.WordStoreType.HASH_TABLE);
 
+        WordStoreFactory.WordStoreType[] values = WordStoreFactory.WordStoreType.values();
+        WordStoreFactory[] factories = new WordStoreFactory[WordStoreFactory.WordStoreType.values().length];
+        csvOutput.append("size");
+        for(int i = 0; i < values.length; i++) {
+            factories[i] = new WordStoreFactory(values[i]);
+            csvOutput.append(", ");
+            csvOutput.append(values[i].toString());
+        }
+        csvOutput.append("\n");
 
-        int[] sizes = new int[]{1000, 100000, 1000000};
+        int[] sizes = new int[]{1000, 100000};
+        long time;
 
         for(int size : sizes) {
-            System.out.println("\n===============================\nTime taken for size of " + size);
-            long time;
+            System.out.println("\n==================================\nTime taken for size of " + size + "\n==================================");
 
-            time = addWordsToEmpty(wordStoreFactory.get(size), new WordGen(seed), size) / 1000000;
-            System.out.println("Add words to empty store - " + time + "ms");
-            time = addWords(wordStoreFactory.get(size), new WordGen(seed), size, 10000) / 1000000;
-            System.out.println("Add words non empty store - " + time + "ms");
-            time = countWords(wordStoreFactory.get(size), new WordGen(seed), size, 10000) / 1000000;
-            System.out.println("Count words in store - " + time + "ms");
-            time = removeWords(wordStoreFactory.get(size), new WordGen(seed), size, 10000) / 1000000;
-            System.out.println("Remove words from store - " + time + "ms");
+            System.out.println("\nAdd words to empty store");
+            csvOutput.append(size);
+            for(WordStoreFactory factory : factories) {
+                time = addWordsToEmpty(factory.get(size), new WordGen(seed), size) / 1000000;
+                System.out.println(String.format("%1$-20s", factory.getType().toString()) + time + "ms");
+                csvOutput.append(", ").append(time);
+            }
+            csvOutput.append("\n");
+
+            System.out.println("\nAdd words non empty store");
+            for(WordStoreFactory factory : factories) {
+                time = addWords(factory.get(size), new WordGen(seed), size, 10000) / 1000000;
+                System.out.println(String.format("%1$-20s", factory.getType().toString()) + time + "ms");
+            }
+
+            System.out.println("\nCount words in store");
+            for(WordStoreFactory factory : factories) {
+                time = countWords(factory.get(size), new WordGen(seed), size, 10000) / 1000000;
+                System.out.println(String.format("%1$-20s", factory.getType().toString()) + time + "ms");
+            }
+
+            System.out.println("\nRemove words from store");
+            for(WordStoreFactory factory : factories) {
+                time = removeWords(factory.get(size), new WordGen(seed), size, 10000) / 1000000;
+                System.out.println(String.format("%1$-20s", factory.getType().toString()) + time + "ms");
+            }
         }
+
+        FileWriter writer = new FileWriter("test.csv");
+        writer.write(csvOutput.toString());
+        writer.close();
 
     }
 
@@ -45,12 +79,11 @@ public class WordTest {
         for (int i = 0; i < n; i++) wordStore.add(testWords[i]);
         long end = System.nanoTime();
 
-        if(wordStore instanceof WordStoreHashTableImp) {
-            WordStoreHashTableImp wordStoreHT = (WordStoreHashTableImp) wordStore;
-            System.out.println("Collisions: " + wordStoreHT.getNumberOfCollisions() + " - Items: " + wordStoreHT.getNumberOfItems());
-            System.out.println("Collision rate: " + wordStoreHT.getCollisionRate() + "%");
-            System.out.println();
-        }
+//        if(wordStore instanceof WordStoreHashTableImp) {
+//            WordStoreHashTableImp wordStoreHT = (WordStoreHashTableImp) wordStore;
+//            System.out.println("Collisions: " + wordStoreHT.getNumberOfCollisions() + " - Items: " + wordStoreHT.getNumberOfItems());
+//            System.out.println("Collision rate: " + wordStoreHT.getCollisionRate() + "%");
+//        }
 
         return end-start;
     }

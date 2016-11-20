@@ -41,4 +41,8 @@ public class WordStoreFactory {
                 return new WordStoreArrayImp();
         }
     }
+
+    public WordStoreType getType() {
+        return type;
+    }
 }
