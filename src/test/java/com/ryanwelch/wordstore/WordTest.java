@@ -39,7 +39,7 @@ public class WordTest {
         countWordsCsvOutput.append("\n");
         removeWordsCsvOutput.append("\n");
 
-        int[] sizes = new int[]{1000, 100000, 500000, 1000000};
+        int[] sizes = new int[]{1000, 100000, 500000};
         long time;
 
         for(int size : sizes) {
