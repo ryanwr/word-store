@@ -121,19 +121,20 @@ public class WordStoreHashTableImp implements WordStore {
     }
 
     private int getIndex(String word, int size) {
-        // Default hashmap implementation
-//        int hash = word.hashCode();
-//        hash ^= (hash >>> 20) ^ (hash >>> 12);
-//        hash ^= (hash >>> 7) ^ (hash >>> 4);
+        // Default hashmap implementatio
+        int hash = 21;
+        for(int i = 0; i < word.length(); i++) {
+            hash = (hash * 7) + word.charAt(i);
+        }
 
         // FNV with hashcode
 //        int hash = word.hashCode();
 //        hash = hashFNV(hash);
 
         // Pure FNV
-        byte[] data = new byte[word.length()];
-        word.getBytes(0, word.length(), data, 0);
-        int hash = hashFNV(data);
+        //byte[] data = new byte[word.length()];
+        //word.getBytes(0, word.length(), data, 0);
+        //int hash = hashFNV(data);
 
         // Dijb2
 //        byte[] data = new byte[word.length()];

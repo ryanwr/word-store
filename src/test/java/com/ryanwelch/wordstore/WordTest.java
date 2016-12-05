@@ -39,10 +39,9 @@ public class WordTest {
         countWordsCsvOutput.append("\n");
         removeWordsCsvOutput.append("\n");
 
-        int[] sizes = new int[]{1000, 100000, 500000};
         long time;
 
-        for(int size : sizes) {
+        for(int size = 1; size <= 1000000; size *= 10) {
             System.out.println("\n==================================\nTime taken for size of " + size + "\n==================================");
 
             System.out.println("\nAdd words to empty store");
@@ -57,7 +56,7 @@ public class WordTest {
             System.out.println("\nAdd words non empty store");
             addWordsNonEmptyCsvOutput.append(size);
             for(WordStoreFactory factory : factories) {
-                time = addWords(factory.get(size), new WordGen(seed), size, 10000) / 1000;
+                time = addWords(factory.get(size*2), new WordGen(seed), size, size) / 1000;
                 System.out.println(String.format("%1$-20s", factory.getType().toString()) + time + "us");
                 addWordsNonEmptyCsvOutput.append(", ").append(time);
             }
@@ -66,7 +65,7 @@ public class WordTest {
             System.out.println("\nCount words in store");
             countWordsCsvOutput.append(size);
             for(WordStoreFactory factory : factories) {
-                time = countWords(factory.get(size), new WordGen(seed), size, 10000) / 1000;
+                time = countWords(factory.get(size), new WordGen(seed), size, size) / 1000;
                 System.out.println(String.format("%1$-20s", factory.getType().toString()) + time + "us");
                 countWordsCsvOutput.append(", ").append(time);
             }
@@ -75,7 +74,7 @@ public class WordTest {
             System.out.println("\nRemove words from store");
             removeWordsCsvOutput.append(size);
             for(WordStoreFactory factory : factories) {
-                time = removeWords(factory.get(size), new WordGen(seed), size, 10000) / 1000;
+                time = removeWords(factory.get(size), new WordGen(seed), size, size) / 1000;
                 System.out.println(String.format("%1$-20s", factory.getType().toString()) + time + "us");
                 removeWordsCsvOutput.append(", ").append(time);
             }

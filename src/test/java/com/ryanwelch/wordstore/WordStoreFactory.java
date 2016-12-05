@@ -10,7 +10,6 @@ public class WordStoreFactory {
     public enum WordStoreType {
         ARRAY,
         BINARY_TREE,
-        RED_BLACK_TREE,
         HASH_TABLE
     }
 
