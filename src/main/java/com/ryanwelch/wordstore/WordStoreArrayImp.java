@@ -26,7 +26,6 @@ public class WordStoreArrayImp implements WordStore {
         this(20);
     }
 
-    // TODO: Shrink array to save space
     private void growArray() {
         if(length < actualLength) return; // No need to grow, space still left
 
@@ -38,7 +37,6 @@ public class WordStoreArrayImp implements WordStore {
         array = newArray;
     }
 
-    // TODO: Binary search
     private int findWord(String word) {
         for(int i = 0; i < length; i++) {
             if(array[i].getWord().equals(word)) return i;

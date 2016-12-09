@@ -1,7 +1,5 @@
 package com.ryanwelch.wordstore;
 
-import java.nio.ByteBuffer;
-
 /**
  * Copyright 2016 (C) Ryan Welch
  *
@@ -9,9 +7,10 @@ import java.nio.ByteBuffer;
  */
 public class WordStoreHashTableImp implements WordStore {
 
-    private static final float MAX_LOAD_FACTOR = 0.7f;
+    private static final float MAX_LOAD_FACTOR = 0.7f; // Maximum load factor allowed before resize
+    private static final int MINIMUM_TABLE_SIZE = 8; // Smallest size of hash table
 
-    private static final int FNV1_32_INIT = 0x811c9dc5;
+    private static final int FNV1_32_INIT = 0x811c9dc5; // FNV Hash function constants
     private static final int FNV1_PRIME_32 = 16777619;
 
     private WordNode[] array;
@@ -20,22 +19,19 @@ public class WordStoreHashTableImp implements WordStore {
 
     private int collisions = 0; // debug
 
-
     public WordStoreHashTableImp(int minSize) {
-        this.array = new WordNode[getNextPowerOf2(minSize)];
-        this.minSize = minSize;
+        this.minSize = getNextPowerOf2(minSize < MINIMUM_TABLE_SIZE ? MINIMUM_TABLE_SIZE : minSize);
+        this.array = new WordNode[this.minSize];
         this.items = 0;
     }
 
     public WordStoreHashTableImp() {
-        this(8);
+        this(MINIMUM_TABLE_SIZE);
     }
 
     private int getNextPowerOf2(int n) {
         int res = 1;
-        while (res < n) {
-            res = res << 1;
-        }
+        while (res < n) res = res << 1;
         return res;
     }
 
@@ -43,10 +39,17 @@ public class WordStoreHashTableImp implements WordStore {
      * Resizes the array if necessary
      */
     private void resize() {
-        float loadFactor = items / array.length;
-        if(loadFactor <= MAX_LOAD_FACTOR) return; // No need to resize
+        float currentLoadFactor = items / array.length;
+        float minLoadFactor = items / (array.length / 2);
 
-        WordNode[] newArray = new WordNode[2 * array.length];
+        boolean shouldShrink = array.length > minSize && minLoadFactor < MAX_LOAD_FACTOR;
+        boolean shouldGrow = currentLoadFactor > MAX_LOAD_FACTOR;
+
+        if(!shouldGrow && !shouldShrink) return; // No need to resize
+
+        WordNode[] newArray;
+        if(shouldGrow) newArray = new WordNode[2 * array.length];
+        else newArray = new WordNode[array.length / 2];
 
         collisions = 0; // debug
 
@@ -95,19 +98,6 @@ public class WordStoreHashTableImp implements WordStore {
     }
 
     /**
-     * FNV hash
-     */
-    private int hashFNV(int data) {
-        int hash = FNV1_32_INIT; // Initial value specified by FNV1
-        for (int i = 0; i < 4; i++) { // Loop through every byte in the integer
-            hash ^= (data & 0xff); // Bitwise exclusive or the next byte onto the hash result
-            hash *= FNV1_PRIME_32; // Prime multiplication constant specified by FNV1
-            data = data >>> 8; // Shift to next byte
-        }
-        return hash;
-    }
-
-    /**
      * Dijb2 hash
      */
     private int hashDijb2(byte[] data) {
@@ -121,25 +111,11 @@ public class WordStoreHashTableImp implements WordStore {
     }
 
     private int getIndex(String word, int size) {
-        // Default hashmap implementatio
-        int hash = 21;
-        for(int i = 0; i < word.length(); i++) {
-            hash = (hash * 7) + word.charAt(i);
-        }
-
-        // FNV with hashcode
-//        int hash = word.hashCode();
-//        hash = hashFNV(hash);
-
         // Pure FNV
-        //byte[] data = new byte[word.length()];
-        //word.getBytes(0, word.length(), data, 0);
-        //int hash = hashFNV(data);
+//        int hash = hashFNV(word.getBytes());
 
         // Dijb2
-//        byte[] data = new byte[word.length()];
-//        word.getBytes(0, word.length(), data, 0);
-//        int hash = hashDijb2(data);
+        int hash = hashDijb2(word.getBytes());
 
         return hash & (size-1); // Requires table to be a PoT
     }
@@ -206,7 +182,7 @@ public class WordStoreHashTableImp implements WordStore {
 
     @Override
     public void remove(String word) {
-        //resize(); // Resize if needed
+        resize(); // Resize if needed
 
         int position = getIndex(word, array.length);
 
@@ -252,10 +228,6 @@ public class WordStoreHashTableImp implements WordStore {
             this(word, 1);
         }
 
-        public WordNode() {
-            this(null, 0);
-        }
-
         public String getWord() {
             return word;
         }
@@ -274,10 +246,6 @@ public class WordStoreHashTableImp implements WordStore {
 
         public int getCount() {
             return count;
-        }
-
-        public void setCount(int count) {
-            this.count = count;
         }
 
         public void incrementCount() {

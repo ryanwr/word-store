@@ -9,8 +9,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-
 /**
  * Copyright 2016 (C) Ryan Welch
  *
@@ -21,6 +19,9 @@ public class CollisionTest {
 
     private final int number;
     private final String[] testWords;
+
+    private static final int FNV1_32_INIT = 0x811c9dc5;
+    private static final int FNV1_PRIME_32 = 16777619;
 
     @Parameterized.Parameters(name = "{index}: {0}")
     public static Collection<Object[]> data() {
@@ -38,24 +39,6 @@ public class CollisionTest {
         for (int i = 0; i < number; i++) testWords[i] = wordGen.make();
     }
 
-    // PRIME HELPER
-    private boolean isPrime(int n) {
-        if (n == 2 || n == 3 || n % 2 == 0 || n % 3 == 0) return false;
-
-        int divisor = 6;
-        while (divisor * divisor - 2 * divisor + 1 <= n) {
-            if (n % (divisor - 1) == 0 || n % (divisor + 1) == 0) return false;
-            divisor += 6;
-        }
-
-        return true;
-    }
-
-    private int getNextPrime(int n) {
-        while(!isPrime(++n)) {}
-        return n;
-    }
-
     // POWER OF TWO HELPER
     private int getNextPowerOf2(int n) {
         n--;
@@ -70,27 +53,33 @@ public class CollisionTest {
         return n;
     }
 
-
-
-    @Test
-    public void defaultHashCodeAndPrime() {
-        int arraySize = getNextPrime(number);
-        List<Integer> list = new ArrayList<>();
-        int collisions = 0;
-
-        for(int i = 0; i < number; i++) {
-
-            // Hash function to test
-            int hash = testWords[i].hashCode();
-            hash = (hash % arraySize + arraySize) % arraySize;
-
-            if(list.contains(hash)) collisions++;
-            else list.add(hash);
+    /**
+     * FNV hash
+     */
+    private int hashFNV(byte[] data) {
+        int hash = FNV1_32_INIT; // Initial value specified by FNV1
+        for (int i = 0; i < data.length; i++) { // Loop through every byte in the integer
+            hash ^= (data[i] & 0xff);
+            hash *= FNV1_PRIME_32; // Prime multiplication constant specified by FNV1
         }
+        return hash;
+    }
+
+    /**
+     * Dijb2 hash
+     */
+    private int hashDijb2(byte[] data) {
+        int hash = 5381;
+
+        for(byte b : data) {
+            hash = ((hash << 5) + hash) + b; /* hash * 33 + b */
+        }
+
+        return hash;
     }
 
     @Test
-    public void defaultHashCodeAndPowerOfTwo() {
+    public void testDefault() {
         int arraySize = getNextPowerOf2(number);
         List<Integer> list = new ArrayList<>();
         int collisions = 0;
@@ -98,12 +87,56 @@ public class CollisionTest {
         for(int i = 0; i < number; i++) {
 
             // Hash function to test
-            int hash = testWords[i].hashCode();
+            int hash = 21;
+            for(int j = 0; j < testWords[i].length(); j++) {
+                hash = (hash * 7) + testWords[i].charAt(j);
+            }
             hash = hash & (arraySize - 1);
 
             if(list.contains(hash)) collisions++;
             else list.add(hash);
         }
+        System.out.println("Default @ " + number + ": " + collisions);
+    }
+
+    @Test
+    public void testFNV() {
+        int arraySize = getNextPowerOf2(number);
+        List<Integer> list = new ArrayList<>();
+        int collisions = 0;
+
+        for(int i = 0; i < number; i++) {
+
+            // Hash function to test
+            byte[] data = new byte[testWords[i].length()];
+            testWords[i].getBytes(0, testWords[i].length(), data, 0);
+            int hash = hashFNV(data);
+            hash = hash & (arraySize - 1);
+
+            if(list.contains(hash)) collisions++;
+            else list.add(hash);
+        }
+        System.out.println("FNV @ " + number + ": " + collisions);
+    }
+
+    @Test
+    public void testDIJB2() {
+        int arraySize = getNextPowerOf2(number);
+        List<Integer> list = new ArrayList<>();
+        int collisions = 0;
+
+        for(int i = 0; i < number; i++) {
+
+            // Hash function to test
+            byte[] data = new byte[testWords[i].length()];
+            testWords[i].getBytes(0, testWords[i].length(), data, 0);
+            int hash = hashDijb2(data);
+            hash = hash & (arraySize - 1);
+
+            if(list.contains(hash)) collisions++;
+            else list.add(hash);
+        }
+        System.out.println("DIJB2 @ " + number + ": " + collisions);
     }
 
 }

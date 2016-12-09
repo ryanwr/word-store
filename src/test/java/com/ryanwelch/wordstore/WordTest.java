@@ -16,8 +16,12 @@ public class WordTest {
         System.out.println("Enter seed: ");
         long seed = input.nextLong();
 
-        WordStoreFactory.WordStoreType[] values = WordStoreFactory.WordStoreType.values();
-        WordStoreFactory[] factories = new WordStoreFactory[WordStoreFactory.WordStoreType.values().length];
+        //WordStoreFactory.WordStoreType[] values = WordStoreFactory.WordStoreType.values();
+//        WordStoreFactory[] factories = new WordStoreFactory[WordStoreFactory.WordStoreType.values().length];
+        WordStoreFactory.WordStoreType[] values = new WordStoreFactory.WordStoreType[] { WordStoreFactory.WordStoreType.HASH_TABLE };
+        WordStoreFactory[] factories = new WordStoreFactory[]{
+            new WordStoreFactory(WordStoreFactory.WordStoreType.HASH_TABLE)
+        };
 
         StringBuilder addWordsCsvOutput = new StringBuilder();
         StringBuilder addWordsNonEmptyCsvOutput = new StringBuilder();
@@ -27,7 +31,7 @@ public class WordTest {
         addWordsNonEmptyCsvOutput.append("size");
         countWordsCsvOutput.append("size");
         removeWordsCsvOutput.append("size");
-        for(int i = 0; i < values.length; i++) {
+        for(int i = 0; i < factories.length; i++) {
             factories[i] = new WordStoreFactory(values[i]);
             addWordsCsvOutput.append(", ").append(values[i].toString());
             addWordsNonEmptyCsvOutput.append(", ").append(values[i].toString());
@@ -107,11 +111,11 @@ public class WordTest {
         for (int i = 0; i < n; i++) wordStore.add(testWords[i]);
         long end = System.nanoTime();
 
-//        if(wordStore instanceof WordStoreHashTableImp) {
-//            WordStoreHashTableImp wordStoreHT = (WordStoreHashTableImp) wordStore;
-//            System.out.println("Collisions: " + wordStoreHT.getNumberOfCollisions() + " - Items: " + wordStoreHT.getNumberOfItems());
-//            System.out.println("Collision rate: " + wordStoreHT.getCollisionRate() + "%");
-//        }
+        if(wordStore instanceof WordStoreHashTableImp) {
+            WordStoreHashTableImp wordStoreHT = (WordStoreHashTableImp) wordStore;
+            System.out.println("Collisions: " + wordStoreHT.getNumberOfCollisions() + " - Items: " + wordStoreHT.getNumberOfItems());
+            System.out.println("Collision rate: " + wordStoreHT.getCollisionRate() + "%");
+        }
 
         return end-start;
     }
