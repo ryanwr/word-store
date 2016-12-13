@@ -13,13 +13,13 @@ package com.ryanwelch.wordstore;
  */
 public class WordStoreArrayImp implements WordStore {
 
-    private Word[] array;
+    private String[] array;
     private int length = 0;
     private int actualLength;
 
     public WordStoreArrayImp(int initialArraySize) {
         this.actualLength = initialArraySize;
-        this.array = new Word[initialArraySize];
+        this.array = new String[initialArraySize];
     }
 
     public WordStoreArrayImp() {
@@ -30,99 +30,41 @@ public class WordStoreArrayImp implements WordStore {
         if(length < actualLength) return; // No need to grow, space still left
 
         actualLength *= 2;
-        Word[] newArray = new Word[actualLength];
+        String[] newArray = new String[actualLength];
         for(int i = 0; i < length; i++) {
             newArray[i] = array[i];
         }
         array = newArray;
     }
 
-    private int findWord(String word) {
-        for(int i = 0; i < length; i++) {
-            if(array[i].getWord().equals(word)) return i;
-        }
-        return -1;
-    }
-
     @Override
     public void add(String word) {
-        int position = findWord(word);
-        if(position != -1) {
-            array[position].incrementCount();
-            return;
-        }
-
         if(length >= actualLength) growArray();
 
-        // TODO: Insert sorted, for binary search
-        array[length] = new Word(word);
-        length++;
+        array[length++] = word;
     }
 
     @Override
     public int count(String word) {
-        int position = findWord(word);
-        return position == -1 ? 0 : array[position].getCount();
-    }
-
-    /**
-     * Remove a word completely from an array and preserve sorted order
-     * @param index
-     */
-    private void removeWord(int index) {
-        length--;
-        for(int i = index; i < length; i++) {
-            array[i] = array[i+1];
-        }
+        int count = 0;
+        for(int i = 0; i < length; i++) if(array[i].equals(word)) count++;
+        return count;
     }
 
     @Override
     public void remove(String word) {
-        int index = findWord(word);
+        int index = -1;
+        for(int i = 0; i < length; i++) {
+            if(array[i].equals(word)) {
+                index = i;
+                break;
+            }
+        }
         if(index == -1) return;
 
-        // If word exists and has more than one count, simply decrease the count
-        if(array[index].getCount() > 1) {
-            array[index].decrementCount();
-        } else {
-            // If it is the last word, remove completely from array
-            removeWord(index);
+        length--;
+        for(int i = index; i < length; i++) {
+            array[i] = array[i+1];
         }
-    }
-
-    private class Word {
-
-        private String word;
-        private int count;
-
-        public Word(String word, int count) {
-            this.word = word;
-            this.count = count;
-        }
-
-        public Word(String word) {
-            this(word, 1);
-        }
-
-        public String getWord() {
-            return word;
-        }
-
-        public int getCount() {
-            return count;
-        }
-
-        public void setCount(int count) {
-            this.count = count;
-        }
-
-        public void incrementCount() {
-            this.count++;
-        }
-
-        public void decrementCount() {
-            this.count--;
-        }
-
     }
 }
