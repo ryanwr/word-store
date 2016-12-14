@@ -110,7 +110,7 @@ public class WordStoreHashTableImp implements WordStore {
             array[position] = new WordNode(word);
             items++;
         } else {
-            // Insert node at end of linked list, or increment count if word is in linked list
+            // Insert node at end of linked list, or increment count
             WordNode node = array[position];
 
             while(node != null) {
