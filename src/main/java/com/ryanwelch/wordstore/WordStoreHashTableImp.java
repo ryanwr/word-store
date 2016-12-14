@@ -7,17 +7,14 @@ package com.ryanwelch.wordstore;
  */
 public class WordStoreHashTableImp implements WordStore {
 
-    private static final float MAX_LOAD_FACTOR = 0.7f; // Maximum load factor allowed before resize
-    private static final int MINIMUM_TABLE_SIZE = 8; // Smallest size of hash table
-
-    private static final int FNV1_32_INIT = 0x811c9dc5; // FNV Hash function constants
-    private static final int FNV1_PRIME_32 = 16777619;
+    // Maximum load factor allowed before resize
+    private static final float MAX_LOAD_FACTOR = 0.7f;
+    // Smallest size of hash table
+    private static final int MINIMUM_TABLE_SIZE = 8;
 
     private WordNode[] array;
     private int items;
     private int minSize;
-
-    private int collisions = 0; // debug
 
     public WordStoreHashTableImp(int minSize) {
         this.minSize = getNextPowerOf2(minSize < MINIMUM_TABLE_SIZE ? MINIMUM_TABLE_SIZE : minSize);
@@ -51,8 +48,6 @@ public class WordStoreHashTableImp implements WordStore {
         if(shouldGrow) newArray = new WordNode[2 * array.length];
         else newArray = new WordNode[array.length / 2];
 
-        collisions = 0; // debug
-
         // Move all nodes to their new positions, and relink collisions
         for(int i = 0; i < array.length; i++) {
             WordNode node = array[i];
@@ -72,8 +67,6 @@ public class WordStoreHashTableImp implements WordStore {
                         }
                         listNode = listNode.getNextNode();
                     }
-
-                    collisions++; // debug
                 }
 
                 nextNode = node.getNextNode();
@@ -83,18 +76,6 @@ public class WordStoreHashTableImp implements WordStore {
         }
 
         array = newArray;
-    }
-
-    /**
-     * FNV hash
-     */
-    private int hashFNV(byte[] data) {
-        int hash = FNV1_32_INIT; // Initial value specified by FNV1
-        for (int i = 0; i < data.length; i++) { // Loop through every byte in the integer
-            hash ^= (data[i] & 0xff);
-            hash *= FNV1_PRIME_32; // Prime multiplication constant specified by FNV1
-        }
-        return hash;
     }
 
     /**
@@ -111,28 +92,11 @@ public class WordStoreHashTableImp implements WordStore {
     }
 
     private int getIndex(String word, int size) {
-        // Pure FNV
-//        int hash = hashFNV(word.getBytes());
-
         // Dijb2
         int hash = hashDijb2(word.getBytes());
 
-        return hash & (size-1); // Requires table to be a PoT
-    }
-
-    // debug
-    public int getCollisionRate() {
-        return (int) (((float) collisions/ (float) items) * 100.0f);
-    }
-
-    // debug
-    public int getNumberOfCollisions() {
-        return collisions;
-    }
-
-    // debug
-    public int getNumberOfItems() {
-        return items;
+        // Requires table to be a PoT
+        return hash & (size-1);
     }
 
     @Override
@@ -141,10 +105,12 @@ public class WordStoreHashTableImp implements WordStore {
 
         int position = getIndex(word, array.length);
 
-        if(array[position] == null) { // Create start of linked list as this node
+        if(array[position] == null) {
+            // Create start of linked list as this node
             array[position] = new WordNode(word);
             items++;
-        } else { // Insert node at end of linked list, or increment count if word is in linked list
+        } else {
+            // Insert node at end of linked list, or increment count if word is in linked list
             WordNode node = array[position];
 
             while(node != null) {
@@ -153,7 +119,6 @@ public class WordStoreHashTableImp implements WordStore {
                     break;
                 } else if(!node.hasNextNode()) {
                     node.setNextNode(new WordNode(word));
-                    collisions++; // debug
                     items++;
                     break;
                 }
@@ -198,7 +163,6 @@ public class WordStoreHashTableImp implements WordStore {
                     } else {
                         if(parent != null) {
                             parent.setNextNode(node.getNextNode());
-                            collisions--; // debug
                         } else {
                             array[position] = node.getNextNode();
                         }
@@ -214,48 +178,46 @@ public class WordStoreHashTableImp implements WordStore {
     }
 
     private class WordNode {
-
         private String word;
         private int count;
         private WordNode nextNode;
 
-        public WordNode(String word, int count) {
+        WordNode(String word, int count) {
             this.word = word;
             this.count = count;
         }
 
-        public WordNode(String word) {
+        WordNode(String word) {
             this(word, 1);
         }
 
-        public String getWord() {
+        String getWord() {
             return word;
         }
 
-        public boolean hasNextNode() {
+        boolean hasNextNode() {
             return nextNode != null;
         }
 
-        public WordNode getNextNode() {
+        WordNode getNextNode() {
             return nextNode;
         }
 
-        public void setNextNode(WordNode node) {
+        void setNextNode(WordNode node) {
             nextNode = node;
         }
 
-        public int getCount() {
+        int getCount() {
             return count;
         }
 
-        public void incrementCount() {
+        void incrementCount() {
             this.count++;
         }
 
-        public void decrementCount() {
+        void decrementCount() {
             this.count--;
         }
-
     }
 
 }

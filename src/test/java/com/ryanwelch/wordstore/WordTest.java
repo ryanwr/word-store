@@ -2,6 +2,7 @@ package com.ryanwelch.wordstore;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Scanner;
 
 /**
@@ -44,7 +45,7 @@ public class WordTest {
         createColumnNames(countWordsCsvOutput);
         createColumnNames(removeWordsCsvOutput);
 
-        for (int size = 1; size <= 1000000; size *= 10) {
+        for (int size = 1; size <= 100000; size *= 10) {
             Test[] tests = new Test[wordStoreFactories.length];
             for (int i = 0; i < wordStoreFactories.length; i++) tests[i] = new Test(wordStoreFactories[i], 3, size);
 
