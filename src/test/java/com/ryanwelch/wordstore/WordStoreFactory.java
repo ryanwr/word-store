@@ -44,7 +44,7 @@ public class WordStoreFactory {
     public int getMaxSize() {
         switch(type) {
             case ARRAY:
-                return 10000;
+                return 1000000;
             default:
                 return -1;
         }

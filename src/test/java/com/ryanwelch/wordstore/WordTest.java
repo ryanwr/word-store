@@ -59,7 +59,7 @@ public class WordTest {
                 addWordsCsvOutput.append(size);
                 for (Test test : tests) {
                     if(test != null) test.addWords(addWordsCsvOutput);
-                    else addWordsCsvOutput.append(", ");
+                    else addWordsCsvOutput.append(", nan");
                 }
                 addWordsCsvOutput.append("\n");
 
@@ -67,7 +67,7 @@ public class WordTest {
                 countWordsCsvOutput.append(size);
                 for (Test test : tests) {
                     if(test != null) test.countWords(countWordsCsvOutput);
-                    else countWordsCsvOutput.append(", ");
+                    else countWordsCsvOutput.append(", nan");
                 }
                 countWordsCsvOutput.append("\n");
 
@@ -75,7 +75,7 @@ public class WordTest {
                 removeWordsCsvOutput.append(size);
                 for (Test test : tests) {
                     if(test != null) test.removeWords(removeWordsCsvOutput);
-                    else removeWordsCsvOutput.append(", ");
+                    else removeWordsCsvOutput.append(", nan");
                 }
                 removeWordsCsvOutput.append("\n");
             }
@@ -88,7 +88,7 @@ public class WordTest {
 
     public class Test {
 
-        private static final int WORDS_PER_TEST = 1000;
+        private static final int WORDS_PER_TEST = 10000;
         private static final int SEED = 0;
 
         private String wordStoreType;
@@ -97,7 +97,7 @@ public class WordTest {
 
         public Test(WordStoreFactory wordStoreFactory, int n) {
             this.wordStoreType = wordStoreFactory.getType().toString();
-            this.wordStore = wordStoreFactory.get(n);
+            this.wordStore = wordStoreFactory.get(n+WORDS_PER_TEST);
             this.wordGen = new WordGen(SEED);
 
             // Initial words

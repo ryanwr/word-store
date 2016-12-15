@@ -4,12 +4,6 @@ package com.ryanwelch.wordstore;
  * Copyright 2016 (C) Ryan Welch
  *
  * @author Ryan Welch
- *
- * Simple implementation of WordStore using a sorted "array and count" data
- * structure with fast lookups using binary search. The problem with binary
- * search backed by an array is that to insert an item into the array it must
- * be inserted into a sorted position and in worst case requires moving all other
- * elements in the array.
  */
 public class WordStoreArrayImp implements WordStore {
 

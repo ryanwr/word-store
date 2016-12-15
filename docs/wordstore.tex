@@ -21,6 +21,11 @@
 % Tikz
 \usepackage{tikz}
 \usetikzlibrary{positioning}
+% Caption and table caption spacing
+\usepackage{caption}
+\captionsetup[table]{skip=10pt}
+% Paragraph spacing
+\usepackage{parskip}
 % Geometry
 \usepackage{geometry}
 \geometry{
@@ -52,6 +57,185 @@
 \usepackage{pgfplots}
 \usepackage{pgfplotstable}
 \pgfplotsset{compat=newest}
+% Fix for PGFplots not handling nan in linear regression
+\makeatletter
+% #1: keys
+\def\pgfplotstable@linear@regression#1{%
+    \begingroup
+    \pgfqkeys{/pgfplots/table/create col/linear regression}{/pgf/fpu,#1}%
+    \pgfkeysgetvalue{/pgfplots/table/create col/linear regression/x}{\pgfplotstable@xsrc}%
+    \pgfkeysgetvalue{/pgfplots/table/create col/linear regression/y}{\pgfplotstable@ysrc}%
+    \pgfkeysgetvalue{/pgfplots/table/create col/linear regression/table}{\pgfplotstable@table}%
+    \pgfkeysgetvalue{/pgfplots/table/create col/linear regression/xmode}{\pgfplotstable@xmode}%
+    \pgfkeysgetvalue{/pgfplots/table/create col/linear regression/ymode}{\pgfplotstable@ymode}%
+    \pgfkeysgetvalue{/pgfplots/table/create col/linear regression/variance}{\pgfplotstable@variance@colname}%
+    \pgfkeysgetvalue{/pgfplots/table/create col/linear regression/variance list}{\pgfplotstable@variance@list}%
+    \pgfkeysgetvalue{/pgfplots/table/create col/linear regression/variance src}{\pgfplotstable@variance@table}%
+    %
+    \ifx\pgfplotstable@table\pgfutil@empty
+        \pgfutil@ifundefined{pgfplotstablename}{}{% query the name of the actual table struct
+            \let\pgfplotstable@table=\pgfplotstablename
+        }%
+    \fi
+    \ifx\pgfplotstable@table\pgfutil@empty
+        \pgfplots@error{Sorry, I couldn't determine a value for create col/linear regression/table. Which table should I load?}%
+    \fi
+    \ifx\pgfplotstable@xsrc\pgfutil@empty
+        \pgfplotsifinaddplottablestruct{%
+            \pgfutil@ifundefined{pgfplots@plot@tbl@x}{}{%
+                \let\pgfplotstable@xsrc=\pgfplots@plot@tbl@x
+                \ifx\pgfplotstable@ysrc\pgfutil@empty
+                    \pgfplotstablegetcolsof\pgfplots@table
+                    \ifnum\pgfplotsretval=2
+                    \else
+                        \pgfplotsthrow{invalid argument}{\pgfplotstable@ysrc}{Sorry, I don't which column should be used as `y' for the linear regression. Please provide 'linear regression={y=<colname>}'}\pgfeov%
+                    \fi
+                \fi
+            }%
+        }{}%
+    \fi
+    \ifx\pgfplotstable@xsrc\pgfutil@empty
+        \def\pgfplotstable@xsrc{[index]0}%
+    \fi
+    \ifx\pgfplotstable@ysrc\pgfutil@empty
+        \def\pgfplotstable@ysrc{[index]1}%
+    \fi
+    %
+    \t@pgfplots@toka=\expandafter{\pgfplotstable@table}%
+    \t@pgfplots@tokb=\expandafter{\pgfplotstable@xsrc}%
+    \t@pgfplots@tokc=\expandafter{\pgfplotstable@ysrc}%
+    \edef\pgfplots@loc@TMPa{{\the\t@pgfplots@tokb}\noexpand\of{\the\t@pgfplots@toka}}%
+    \edef\pgfplots@loc@TMPb{{\the\t@pgfplots@tokc}\noexpand\of{\the\t@pgfplots@toka}}%
+    \expandafter\pgfplotstablegetcolumn\pgfplots@loc@TMPa\to\pgfplotstable@X
+    \expandafter\pgfplotstablegetcolumn\pgfplots@loc@TMPb\to\pgfplotstable@Y
+    %
+    \edef\pgfplotstable@xmode{\pgfplotstable@xmode}%
+    \expandafter\pgfplotstable@linear@regression@prepare@mode\expandafter{\pgfplotstable@xmode}{x}%%
+    \edef\pgfplotstable@ymode{\pgfplotstable@ymode}%
+    \expandafter\pgfplotstable@linear@regression@prepare@mode\expandafter{\pgfplotstable@ymode}{y}%%
+    %
+    \ifx\pgfplotstable@variance@list\pgfutil@empty
+        % check 'variance' key (loaded from table)
+        \pgfplotslistnewempty\pgfplotstable@VARIANCE
+        \ifx\pgfplotstable@variance@colname\pgfutil@empty
+        \else
+            \ifx\pgfplotstable@variance@table\pgfutil@empty
+                \t@pgfplots@toka=\expandafter{\pgfplotstable@table}%
+                \t@pgfplots@tokb=\expandafter{\pgfplotstable@variance@colname}%
+                \edef\pgfplots@loc@TMPa{{\the\t@pgfplots@tokb}\noexpand\of{\the\t@pgfplots@toka}}%
+                \expandafter\pgfplotstablegetcolumn\pgfplots@loc@TMPa\to\pgfplotstable@VARIANCE
+            \else
+                \t@pgfplots@toka=\expandafter{\pgfplotstable@variance@colname}%
+                \t@pgfplots@tokb=\expandafter{\pgfplotstable@variance@table}%
+                \edef\pgfplotstable@loc@TMPa{%
+                    \noexpand\pgfplotstablegetcolumn{\the\t@pgfplots@toka}\noexpand\of{\the\t@pgfplots@tokb}\noexpand\to\noexpand\pgfplotstable@VARIANCE}%
+                \pgfplotstable@loc@TMPa
+            \fi
+        \fi
+    \else
+        % load from list:
+        \expandafter\pgfplotslistnew\expandafter\pgfplotstable@VARIANCE\expandafter{\pgfplotstable@variance@list}%
+    \fi
+    %
+    \pgfplotslistnewempty\pgfplotstable@Xparsed
+    %
+    \pgfmathfloatcreate{0}{0.0}{0}%
+    \let\pgfplotstable@S=\pgfmathresult
+    \let\pgfplotstable@Sxx=\pgfmathresult
+    \let\pgfplotstable@Sx=\pgfmathresult
+    \let\pgfplotstable@Sy=\pgfmathresult
+    \let\pgfplotstable@Sxy=\pgfmathresult
+    \pgfutil@loop
+    \pgfplotslistcheckempty\pgfplotstable@X
+    \ifpgfplotslistempty
+        \pgfplots@loop@CONTINUEfalse
+    \else
+        \pgfplots@loop@CONTINUEtrue
+    \fi
+    \ifpgfplots@loop@CONTINUE
+        \pgfplotslistpopfront\pgfplotstable@X\to\pgfplotstable@x
+        \pgfplotslistpopfront\pgfplotstable@Y\to\pgfplotstable@y
+        %
+        \pgfplotstableparsex{\pgfplotstable@x}%
+        \let\pgfplotstable@x=\pgfmathresult
+        \expandafter\pgfplotslistpushback\pgfmathresult\to\pgfplotstable@Xparsed
+        \pgfplotstableparsey{\pgfplotstable@y}%
+        \let\pgfplotstable@y=\pgfmathresult
+        \pgfmathfloatifflags{\pgfplotstable@y}{3}{}{% <---- This is new. The "3" stands for "nan"
+        %
+        \pgfplotslistcheckempty\pgfplotstable@VARIANCE
+        \ifpgfplotslistempty
+            \pgfmathfloatcreate{1}{1.0}{0}%
+            \let\pgfplotstable@invsqr=\pgfmathresult
+        \else
+            \pgfplotslistpopfront\pgfplotstable@VARIANCE\to\pgfplotstable@variance
+            \pgfmathfloatparsenumber{\pgfplotstable@variance}%
+            \let\pgfplotstable@variance=\pgfmathresult
+            \pgfmathfloatmultiply@{\pgfplotstable@variance}{\pgfplotstable@variance}%
+            \let\pgfplotstable@sqr=\pgfmathresult
+            \pgfmathfloatreciprocal@{\pgfplotstable@sqr}%
+            \let\pgfplotstable@invsqr=\pgfmathresult
+        \fi
+        %
+        \pgfmathfloatadd@{\pgfplotstable@S}{\pgfplotstable@invsqr}%
+        \let\pgfplotstable@S=\pgfmathresult
+        %
+        \pgfmathfloatmultiply@{\pgfplotstable@x}{\pgfplotstable@invsqr}%
+        \let\pgfplots@table@accum=\pgfmathresult
+        \pgfmathfloatadd@{\pgfplotstable@Sx}{\pgfplots@table@accum}%
+        \let\pgfplotstable@Sx=\pgfmathresult
+        %
+        \pgfmathfloatmultiply@{\pgfplotstable@x}{\pgfplots@table@accum}%
+        \let\pgfplots@table@accum=\pgfmathresult
+        \pgfmathfloatadd@{\pgfplotstable@Sxx}{\pgfplots@table@accum}%
+        \let\pgfplotstable@Sxx=\pgfmathresult
+        %
+        \pgfmathfloatmultiply@{\pgfplotstable@y}{\pgfplotstable@invsqr}%
+        \let\pgfplots@table@accum=\pgfmathresult
+        \pgfmathfloatadd@{\pgfplotstable@Sy}{\pgfplots@table@accum}%
+        \let\pgfplotstable@Sy=\pgfmathresult
+        %
+        \pgfmathfloatmultiply@{\pgfplotstable@x}{\pgfplots@table@accum}%
+        \let\pgfplots@table@accum=\pgfmathresult
+        \pgfmathfloatadd@{\pgfplotstable@Sxy}{\pgfplots@table@accum}%
+        \let\pgfplotstable@Sxy=\pgfmathresult
+        }% <---- This is new.
+    \pgfutil@repeat
+    %
+    \pgfmathparse{\pgfplotstable@S * \pgfplotstable@Sxx - \pgfplotstable@Sx *\pgfplotstable@Sx}%
+    \let\pgfplotstable@delta=\pgfmathresult
+    %
+    \pgfmathparse{(\pgfplotstable@S * \pgfplotstable@Sxy - \pgfplotstable@Sx * \pgfplotstable@Sy) / \pgfplotstable@delta}%
+    \let\pgfplotstable@a=\pgfmathresult
+    %
+    \pgfmathparse{(\pgfplotstable@Sxx * \pgfplotstable@Sy - \pgfplotstable@Sx * \pgfplotstable@Sxy) / \pgfplotstable@delta}%
+    \let\pgfplotstable@b=\pgfmathresult
+    %
+    \pgfplotslistnewempty\pgfplotstable@RESULT
+    \pgfplotslistforeachungrouped\pgfplotstable@Xparsed\as\pgfplotstable@x{%
+        \pgfmathfloatmultiply@{\pgfplotstable@x}{\pgfplotstable@a}%
+        \let\pgfplotstable@tmp=\pgfmathresult
+        \pgfmathfloatadd@{\pgfplotstable@tmp}{\pgfplotstable@b}%
+        \ifx\pgfplotstableparseylogbase\pgfutil@empty
+        \else
+            \pgfplotstableparseyinv@{\pgfmathresult}%
+        \fi
+        \pgfmathfloattosci{\pgfmathresult}%
+        \expandafter\pgfplotslistpushback\pgfmathresult\to\pgfplotstable@RESULT
+    }%
+    \pgfmathfloattosci\pgfplotstable@a
+    \let\pgfplotstable@a=\pgfmathresult
+    %
+    \pgfmathfloattosci\pgfplotstable@b
+    \let\pgfplotstable@b=\pgfmathresult
+    %
+    \global\let\pgfplotstableregressiona\pgfplotstable@a%
+    \global\let\pgfplotstableregressionb\pgfplotstable@b%
+    \let\pgfplotsretval=\pgfplotstable@RESULT
+    \pgfmath@smuggleone\pgfplotsretval
+    \endgroup
+}%
+\makeatother
 \pgfplotstableread[col sep = comma]{addwords.csv}\addwords
 \pgfplotstableread[col sep = comma]{countwords.csv}\countwords
 \pgfplotstableread[col sep = comma]{removewords.csv}\removewords
@@ -169,14 +353,14 @@ Once we have a 32bit integer as a hash for our word, we need to map the integer 
 
 \section{Comparison}
 
-In order to show the hash table's performance and verify it's big-O category I compared it against a simple Array and count data structure and a Binary Tree data structure. The Array implementation was also used as a comparison whilst developing the hash table version.
+In order to show the hash table's performance and verify it's big-O category I compared it against a simple Array and count data structure and a Binary Tree data structure. The Array implementation was also used as a comparison whilst developing the hash table version. In the graphs below I tested each data structure with a fixed number of insertions, deletions and retrievals whilst changing the size of previously stored data. This should show the big-O category as the big-O category is how long an individual operation will take depending on the how much data is already in the structure. I measured the time taken with as much precision as possible using java's \texttt{System.nanoTime()}.
 
-The first test is shown in Figure \ref{fig:add_chart}
+The first test is shown in Figure \ref{fig:add_chart}, it shows the trend of all three data structures roughly constant, however noticibly the Binary Tree has a larger gradient than the other two. This is because the binary tree has a big-O of $O(\log(n))$ whilst the insertion for the Array and insertion for the Hash Table are $O(1)$. The Hash Table takes a constant amount of time longer than the Array to insert which is most likely due to the higher costs in insertion from calculating the hash of each word.
+
 
 \begin{figure}[!htb]
 \begin{tikzpicture}
     \begin{axis}[
-    		title={Add n words to word store},
     		ymin=0,
     		xmode=log,
             width=0.9\textwidth,
@@ -196,30 +380,32 @@ The first test is shown in Figure \ref{fig:add_chart}
 			scaled y ticks=false,
 			xticklabel style={/pgf/number format/fixed},
 			scaled x ticks=false,
-            ylabel={Time to add 1000 words in nanoseconds (ns)},
+            ylabel={Time to add 10000 words in nanoseconds (ns)},
             xlabel={Number of words in word store},
             axis on top
         ]
-        \addplot[only marks, mark=x, mark options={solid}, color=orange] table[x=size,y=ARRAY]{\addwords};
         \addplot[mark=none,color=orange] table[x=size,y={create col/linear regression={y=ARRAY}}] {\addwords};
-        \addplot[only marks, mark=x, mark options={solid}, color=red] table[x=size,y=BINARY_TREE]{\addwords};
         \addplot[mark=none,color=red] table[x=size,y={create col/linear regression={y=BINARY_TREE}}] {\addwords};
-        \addplot[only marks, mark=x, mark options={solid}, color=blue] table[x=size,y=HASH_TABLE]{\addwords};
         \addplot[mark=none,color=blue] table[x=size,y={create col/linear regression={y=HASH_TABLE}}] {\addwords};
+        \addplot[only marks, mark=x, mark options={solid}, color=orange, forget plot] table[x=size,y=ARRAY]{\addwords};
+        \addplot[only marks, mark=x, mark options={solid}, color=red, forget plot] table[x=size,y=BINARY_TREE]{\addwords};
+        \addplot[only marks, mark=x, mark options={solid}, color=blue, forget plot] table[x=size,y=HASH_TABLE]{\addwords};
         \legend{Array, Binary Tree, Hash Table}
     \end{axis}
 \end{tikzpicture}
-\caption{Tests performed on an Intel Core i7-3770K @ 3.5Ghz}
+\caption[The LOF caption]{Graph of adding n words to word store\footnotemark[1]}
 \label{fig:add_chart}
 \end{figure}
 
+
+The count test data is shown in Figure \ref{fig:count_chart}, the Array data is not included in the graph as it is much slower however it is included in Table \ref{tab:count_data} in the appendix for completeness. The data shows a similar trend as in the addition test, the Hash Table remains constant at around 2ms but the Binary Tree increases linearly in $O(\log(n))$ time. The Array performs at a very slow $O(n)$ and struggles at anything larger than an initial size of 1 million as it must check every position in the array in contrast to the Hash Table which simply looks up the position for the node.
+
+
 \begin{figure}[!htb]
 \begin{tikzpicture}
     \begin{axis}[
-    		title={Count n words in non empty word store},
     		ymin=0,
-    		ymax=50000000,
-    		restrict y to domain=0:2000000000,
+    		ymax=10000000,
     		xmode=log,
             width=0.9\textwidth,
             height=0.4\textwidth,
@@ -238,30 +424,32 @@ The first test is shown in Figure \ref{fig:add_chart}
 			scaled y ticks=false,
 			xticklabel style={/pgf/number format/fixed},
 			scaled x ticks=false,
-            ylabel={Time to add 1000 words in nanoseconds (ns)},
+            ylabel={Time to add 10000 words in nanoseconds (ns)},
             xlabel={Number of words in word store},
             axis on top
         ]
-        \addplot[only marks, mark=x, mark options={solid}, color=orange] table[x=size,y=ARRAY]{\addwords};
-        \addplot[mark=none,color=orange] table[x=size,y={create col/linear regression={y=ARRAY}}] {\addwords};
-        \addplot[only marks, mark=x, mark options={solid}, color=red] table[x=size,y=BINARY_TREE]{\addwords};
-        \addplot[mark=none,color=red] table[x=size,y={create col/linear regression={y=BINARY_TREE}}] {\addwords};
-        \addplot[only marks, mark=x, mark options={solid}, color=blue] table[x=size,y=HASH_TABLE]{\addwords};
-        \addplot[mark=none,color=blue] table[x=size,y={create col/linear regression={y=HASH_TABLE}}] {\addwords};
-        \legend{Array, Binary Tree, Hash Table}
+        %\addplot[mark=none,color=orange] table[x=size,y={create col/linear regression={y=ARRAY}}] {\countwords};
+        \addplot[mark=none,color=red] table[x=size,y={create col/linear regression={y=BINARY_TREE}}] {\countwords};
+        \addplot[mark=none,color=blue] table[x=size,y={create col/linear regression={y=HASH_TABLE}}] {\countwords};
+        %\addplot[only marks, mark=x, mark options={solid}, color=orange, forget plot] table[x=size,y=ARRAY]{\countwords};
+        \addplot[only marks, mark=x, mark options={solid}, color=red, forget plot] table[x=size,y=BINARY_TREE]{\countwords};
+        \addplot[only marks, mark=x, mark options={solid}, color=blue, forget plot] table[x=size,y=HASH_TABLE]{\countwords};
+        %\legend{Array, Binary Tree, Hash Table}
+        \legend{Binary Tree, Hash Table}
     \end{axis}
 \end{tikzpicture}
-\caption{Tests performed on an Intel Core i7-3770K @ 3.5Ghz}
+\caption[The LOF caption]{Graph of counting n words in word store\footnotemark[1]}
 \label{fig:count_chart}
 \end{figure}
 
+Finally the remove method test in Figure \ref{fig:remove_chart} shows again the same patterns, the Hash Table once again performs at $O(1)$ and the Binary Tree at $O(\log(n))$. This shows just how efficient the hash table is, and is capable to deal with vast amount of data, more than I have tested. The hash table is more likely to be bounded by memory than processing time on larger data sets. It does however also incur a a large penalty when resizing to accommodate more elements which is not represented accurately in this data, however at a large scale this would be an issue with the hash table which could be mitigated by, after a resize, maintaining more than one active hash function and on every insert or delete operation a portion of data is relocated to the new array \cite{resizinghashtables}.
+Hash Tables are a large improvement over a simple 'array and count' structure, there are still improvements that can be made to my implementation however it would also increase the complexity and my implementation still performs as expected.
+
 \begin{figure}[!htb]
 \begin{tikzpicture}
     \begin{axis}[
-    		title={Remove n words from word store},
     		ymin=0,
-    		ymax=50000000,
-    		restrict y to domain=0:2000000000,
+    		ymax=10000000,
     		xmode=log,
             width=0.9\textwidth,
             height=0.4\textwidth,
@@ -280,30 +468,89 @@ The first test is shown in Figure \ref{fig:add_chart}
 			scaled y ticks=false,
 			xticklabel style={/pgf/number format/fixed},
 			scaled x ticks=false,
-            ylabel={Time to add 1000 words in nanoseconds (ns)},
+            ylabel={Time to add 10000 words in nanoseconds (ns)},
             xlabel={Number of words in word store},
             axis on top
         ]
-        \addplot[only marks, mark=x, mark options={solid}, color=orange] table[x=size,y=ARRAY]{\addwords};
-        \addplot[mark=none,color=orange] table[x=size,y={create col/linear regression={y=ARRAY}}] {\addwords};
-        \addplot[only marks, mark=x, mark options={solid}, color=red] table[x=size,y=BINARY_TREE]{\addwords};
-        \addplot[mark=none,color=red] table[x=size,y={create col/linear regression={y=BINARY_TREE}}] {\addwords};
-        \addplot[only marks, mark=x, mark options={solid}, color=blue] table[x=size,y=HASH_TABLE]{\addwords};
-        \addplot[mark=none,color=blue] table[x=size,y={create col/linear regression={y=HASH_TABLE}}] {\addwords};
-        \legend{Array, Binary Tree, Hash Table}
+        %\addplot[mark=none,color=orange] table[x=size,y={create col/linear regression={y=ARRAY}}] {\removewords};
+        \addplot[mark=none,color=red] table[x=size,y={create col/linear regression={y=BINARY_TREE}}] {\removewords};
+        \addplot[mark=none,color=blue] table[x=size,y={create col/linear regression={y=HASH_TABLE}}] {\removewords};
+        %\addplot[only marks, mark=x, mark options={solid}, color=orange, forget plot] table[x=size,y=ARRAY]{\removewords};
+        \addplot[only marks, mark=x, mark options={solid}, color=red, forget plot] table[x=size,y=BINARY_TREE]{\removewords};
+        \addplot[only marks, mark=x, mark options={solid}, color=blue, forget plot] table[x=size,y=HASH_TABLE]{\removewords};
+        %\legend{Array, Binary Tree, Hash Table}
+        \legend{Binary Tree, Hash Table}
     \end{axis}
 \end{tikzpicture}
-\caption{Tests performed on an Intel Core i7-3770K @ 3.5Ghz}
+\caption[The LOF caption]{Graph of removing n words from word store\footnotemark}
 \label{fig:remove_chart}
 \end{figure}
+\footnotetext{Tests performed on an Intel Core i7-3770k @ 3.5Ghz}
+
+
 
 \FloatBarrier % Prevent figures floating into section
-\clearpage
 
 \printbibliography[heading=bibnumbered]
 
+\clearpage
+
 \section{Appendix}
+\subsection{Timing data}
+\begin{table}[!htb]
+\centering
+\caption{Add n words to word store} 
+\label{tab:add_data} 
+\pgfplotstabletypeset[
+    string type,
+    string replace*={nan}{N/A},
+    columns/size/.style={column name=Number of words, column type={|l}},
+    columns/ARRAY/.style={column name=Array (ns), column type={|l}},
+    columns/BINARY_TREE/.style={column name=Binary Tree (ns), column type={|l}},
+    columns/HASH_TABLE/.style={column name=Hash Table (ns), column type={|l|}},
+    every head row/.style={before row=\hline,after row=\hline},
+    every last row/.style={after row=\hline},
+    ]{\addwords}
+\end{table}
+
+\begin{table}[!htb]
+\centering
+\caption{Count n words in word store} 
+\label{tab:count_data} 
+\pgfplotstabletypeset[
+    string type,
+    string replace*={nan}{N/A},
+    columns/size/.style={column name=Number of words, column type={|l}},
+    columns/ARRAY/.style={column name=Array (ns), column type={|l}},
+    columns/BINARY_TREE/.style={column name=Binary Tree (ns), column type={|l}},
+    columns/HASH_TABLE/.style={column name=Hash Table (ns), column type={|l|}},
+    every head row/.style={before row=\hline,after row=\hline},
+    every last row/.style={after row=\hline},
+    ]{\countwords}
+\end{table}
+
+\begin{table}[!htb]
+\centering
+\caption{Remove n words from word store} 
+\label{tab:remove_data} 
+\pgfplotstabletypeset[
+    string type,
+    string replace*={nan}{N/A},
+    columns/size/.style={column name=Number of words, column type={|l}},
+    columns/ARRAY/.style={column name=Array (ns), column type={|l}},
+    columns/BINARY_TREE/.style={column name=Binary Tree (ns), column type={|l}},
+    columns/HASH_TABLE/.style={column name=Hash Table (ns), column type={|l|}},
+    every head row/.style={before row=\hline,after row=\hline},
+    every last row/.style={after row=\hline},
+    ]{\removewords}
+\end{table}
+
+\FloatBarrier
+
 \subsection{WordStoreHashTableImp}
 \inputminted[mathescape,breaklines=true,fontsize=\footnotesize,baselinestretch=0.75,linenos=true]{java}{../src/main/java/com/ryanwelch/wordstore/WordStoreHashTableImp.java}
+
+\subsection{WordStoreArrayImp}
+\inputminted[mathescape,breaklines=true,fontsize=\footnotesize,baselinestretch=0.75,linenos=true]{java}{../src/main/java/com/ryanwelch/wordstore/WordStoreArrayImp.java}
 
 \end{document}
