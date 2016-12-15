@@ -2,7 +2,9 @@ package com.ryanwelch.wordstore;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Scanner;
 
 /**
@@ -12,6 +14,7 @@ import java.util.Scanner;
  */
 public class WordTest {
 
+    private static int NUM_REPEATS = 3;
     private WordStoreFactory[] wordStoreFactories;
 
     public WordTest(WordStoreFactory.WordStoreType[] values) {
@@ -37,83 +40,82 @@ public class WordTest {
 
     public void start() throws IOException {
         StringBuilder addWordsCsvOutput = new StringBuilder();
-        StringBuilder addWordsNonEmptyCsvOutput = new StringBuilder();
         StringBuilder countWordsCsvOutput = new StringBuilder();
         StringBuilder removeWordsCsvOutput = new StringBuilder();
         createColumnNames(addWordsCsvOutput);
-        createColumnNames(addWordsNonEmptyCsvOutput);
         createColumnNames(countWordsCsvOutput);
         createColumnNames(removeWordsCsvOutput);
 
-        for (int size = 1; size <= 100000; size *= 10) {
+        for (int size = 10000; size <= 10000000; size *= 10) {
             Test[] tests = new Test[wordStoreFactories.length];
-            for (int i = 0; i < wordStoreFactories.length; i++) tests[i] = new Test(wordStoreFactories[i], 3, size);
+            for (int i = 0; i < wordStoreFactories.length; i++) {
+                if(size <= wordStoreFactories[i].getMaxSize() || wordStoreFactories[i].getMaxSize() == -1)
+                    tests[i] = new Test(wordStoreFactories[i], size);
+            }
 
             System.out.println("\n==================================\nTime taken for size of " + size + "\n==================================");
-            System.out.println("\nAdd words to empty store");
-            addWordsCsvOutput.append(size);
-            for(Test test : tests) test.addWords(addWordsCsvOutput);
-            addWordsCsvOutput.append("\n");
+            for(int i = 0; i < NUM_REPEATS; i++) {
+                System.out.println("\nAdd words to empty store");
+                addWordsCsvOutput.append(size);
+                for (Test test : tests) {
+                    if(test != null) test.addWords(addWordsCsvOutput);
+                    else addWordsCsvOutput.append(", ");
+                }
+                addWordsCsvOutput.append("\n");
 
-            System.out.println("\nAdd words non empty store");
-            addWordsNonEmptyCsvOutput.append(size);
-            for(Test test : tests) test.addWords(addWordsNonEmptyCsvOutput);
-            addWordsNonEmptyCsvOutput.append("\n");
+                System.out.println("\nCount words in store");
+                countWordsCsvOutput.append(size);
+                for (Test test : tests) {
+                    if(test != null) test.countWords(countWordsCsvOutput);
+                    else countWordsCsvOutput.append(", ");
+                }
+                countWordsCsvOutput.append("\n");
 
-            System.out.println("\nCount words in store");
-            countWordsCsvOutput.append(size);
-            for(Test test : tests) test.countWords(countWordsCsvOutput);
-            countWordsCsvOutput.append("\n");
-
-            System.out.println("\nRemove words from store");
-            removeWordsCsvOutput.append(size);
-            for(Test test : tests) test.removeWords(removeWordsCsvOutput);
-            removeWordsCsvOutput.append("\n");
+                System.out.println("\nRemove words from store");
+                removeWordsCsvOutput.append(size);
+                for (Test test : tests) {
+                    if(test != null) test.removeWords(removeWordsCsvOutput);
+                    else removeWordsCsvOutput.append(", ");
+                }
+                removeWordsCsvOutput.append("\n");
+            }
         }
 
         writeFile(addWordsCsvOutput, "docs/addwords.csv");
-        writeFile(addWordsNonEmptyCsvOutput, "docs/addwordsnonempty.csv");
         writeFile(countWordsCsvOutput, "docs/countwords.csv");
         writeFile(removeWordsCsvOutput, "docs/removewords.csv");
     }
 
     public class Test {
 
+        private static final int WORDS_PER_TEST = 1000;
+        private static final int SEED = 0;
+
         private String wordStoreType;
         private WordStore wordStore;
-        private int numRepeats;
-        private int n;
+        private WordGen wordGen;
 
-        public Test(WordStoreFactory wordStoreFactory, int numRepeats, int n) {
+        public Test(WordStoreFactory wordStoreFactory, int n) {
             this.wordStoreType = wordStoreFactory.getType().toString();
             this.wordStore = wordStoreFactory.get(n);
-            this.numRepeats = numRepeats;
-            this.n = n;
+            this.wordGen = new WordGen(SEED);
+
+            // Initial words
+            for (int i = 0; i < n; i++) wordStore.add(wordGen.make());
         }
 
         /**
          * Inserting words into store
          */
-        private long addWords(WordGen wordGen) {
-            String[] testWords = new String[n];
-            for (int i = 0; i < n; i++) testWords[i] = wordGen.make();
+        public void addWords(StringBuilder output) {
+            String[] testWords = new String[WORDS_PER_TEST];
+            for (int i = 0; i < WORDS_PER_TEST; i++) testWords[i] = wordGen.make();
 
             long start = System.nanoTime();
-            for (int i = 0; i < n; i++) wordStore.add(testWords[i]);
+            for (int i = 0; i < WORDS_PER_TEST; i++) wordStore.add(testWords[i]);
             long end = System.nanoTime();
 
-    //        if(wordStore instanceof WordStoreHashTableImp) {
-    //            WordStoreHashTableImp wordStoreHT = (WordStoreHashTableImp) wordStore;
-    //            System.out.println("Collisions: " + wordStoreHT.getNumberOfCollisions() + " - Items: " + wordStoreHT.getNumberOfItems());
-    //            System.out.println("Collision rate: " + wordStoreHT.getCollisionRate() + "%");
-    //        }
-            return end-start;
-        }
-
-        public void addWords(StringBuilder output) {
-            long average = 0;
-            for(int i = 0; i < numRepeats; i++) average += addWords(new WordGen(i));
-            average /= numRepeats;
+            long average = end-start;
 
             System.out.println(String.format("%1$-20s", wordStoreType) + average + "ns");
             output.append(", ").append(average);
@@ -122,21 +124,15 @@ public class WordTest {
         /**
          * Counting word in store
          */
-        private long countWords(WordGen wordGen) {
-            String[] testWords = new String[n];
-            for (int i = 0; i < n; i++) testWords[i] = wordGen.make();
+        public void countWords(StringBuilder output) {
+            String[] testWords = new String[WORDS_PER_TEST];
+            for (int i = 0; i < WORDS_PER_TEST; i++) testWords[i] = wordGen.make();
 
             long start = System.nanoTime();
-            for (int i = 0; i < n; i++) wordStore.count(testWords[i]);
+            for (int i = 0; i < WORDS_PER_TEST; i++) wordStore.count(testWords[i]);
             long end = System.nanoTime();
 
-            return end-start;
-        }
-
-        public void countWords(StringBuilder output) {
-            long average = 0;
-            for(int i = 0; i < numRepeats; i++) average += countWords(new WordGen(i));
-            average /= numRepeats;
+            long average = end-start;
 
             System.out.println(String.format("%1$-20s", wordStoreType) + average + "ns");
             output.append(", ").append(average);
@@ -146,21 +142,15 @@ public class WordTest {
          * Remove words in store
          * @return
          */
-        private long removeWords(WordGen wordGen) {
-            String[] testWords = new String[n];
-            for (int i = 0; i < n; i++) testWords[i] = wordGen.make();
+        public void removeWords(StringBuilder output) {
+            String[] testWords = new String[WORDS_PER_TEST];
+            for (int i = 0; i < WORDS_PER_TEST; i++) testWords[i] = wordGen.make();
 
             long start = System.nanoTime();
-            for (int i = 0; i < n; i++) wordStore.remove(testWords[i]);
+            for (int i = 0; i < WORDS_PER_TEST; i++) wordStore.remove(testWords[i]);
             long end = System.nanoTime();
 
-            return end-start;
-        }
-
-        public void removeWords(StringBuilder output) {
-            long average = 0;
-            for(int i = 0; i < numRepeats; i++) average += removeWords(new WordGen(i));
-            average /= numRepeats;
+            long average = end-start;
 
             System.out.println(String.format("%1$-20s", wordStoreType) + average + "ns");
             output.append(", ").append(average);

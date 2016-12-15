@@ -41,6 +41,15 @@ public class WordStoreFactory {
         }
     }
 
+    public int getMaxSize() {
+        switch(type) {
+            case ARRAY:
+                return 10000;
+            default:
+                return -1;
+        }
+    }
+
     public WordStoreType getType() {
         return type;
     }

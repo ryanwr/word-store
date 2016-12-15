@@ -50,9 +50,9 @@
 }
 % PGFplots
 \usepackage{pgfplots}
+\usepackage{pgfplotstable}
 \pgfplotsset{compat=newest}
-\pgfplotstableread[col sep = comma]{addwords.csv}\addwordsdata
-\pgfplotstableread[col sep = comma]{addwordsnonempty.csv}\addwordsnonemptydata
+\pgfplotstableread[col sep = comma]{addwords.csv}\addwords
 \pgfplotstableread[col sep = comma]{countwords.csv}\countwords
 \pgfplotstableread[col sep = comma]{removewords.csv}\removewords
 % Title section
@@ -88,7 +88,7 @@
 \clearpage
 
 \section{Introduction}
-The task was to create an abstract dictionary data structure defined by an interface and implemented by an efficient data structure. The requirements are a way to insert, remove and count the occurrences in the dictionary. I started with a reference array and count implementation where an object with the key (the word) and it's value (the number of times it has been inserted) are stored in a virtual array which doubles the size of the real array every time it runs out of space. This is a simple way to check more complicated implementations for correctness as there is very little complexity in this reference implementation.
+The task was to create an abstract dictionary data structure defined by an interface and implemented by an efficient data structure. The requirements are to implement a dictionary that can insert, remove and count the occurrences or words. I started with a reference 'array and count' implementation where the words are stored in a virtual array which doubles in size every time it runs out of space in the real array. This is a simple way to check more complicated implementations for correctness as there is very little complexity in this reference implementation.
 
 \begin{figure}[!htp]
 \centering
@@ -97,7 +97,7 @@ The task was to create an abstract dictionary data structure defined by an inter
 \label{lst:wordstore_interface}
 \end{figure}
 
-I chose to use a hash table as it provides in the average case $O(1)$ lookup, insertion and removal. Whereas the reference implementation is an abysmal $O(n)$ for insertion, removal and lookup. While in theory a hash table is actually $O(n)$ in the rare case where all elements have the same hash, in practice it performs closer to $O(1)$. Another data structure I considered was a binary tree, in particular a self-balancing binary tree such as a red-black tree which has a guaranteed $O(\log{}n)$ worst case however the hash table appears to be a better, more performant choice \cite{introtoalgorithms}.
+I chose to use a hash table as it provides in the average case $O(1)$ lookup, insertion and removal. Whereas the reference implementation is an abysmal $O(n)$ for insertion, removal and lookup. While in theory a hash table is actually $O(n)$, in the rare case where all elements have the same hash, in practice it performs closer to $O(1)$. Another data structure I considered was a binary tree, in particular a self-balancing binary tree such as a red-black tree which has a guaranteed $O(\log{}n)$ worst case however the hash table appears to be a better, more performant choice \cite{introtoalgorithms}. One disadvantage with a hash table is it wastes some memory as the array will never be full, however we are not very concerned with it's memory use as long as it is not excessive.
 
 \section{Structure}
 A hash table is simply an array, however instead of placing items linearly we insert them at a position determined by a hash function. The hash function aims for a uniform distribution of the items across all buckets. In the case where the hash function chooses the same bucket for two different elements we must store both elements in the same bucket. There are two design choices for dealing with collisions open addressing and separate chaining. Separate chaining is where each bucket contains a list structure to store all elements at the same position, however requiring the additional step of iterating the list to find the element, usually $O(n)$. Open addressing is where if the bucket is already occupied you traverse the array until you find the next unoccupied slot, this is also $O(n)$ however incurs a hidden penalty in which you are occupying another position in the table and increasing the chances of another collision more rapidly.
@@ -105,7 +105,7 @@ A hash table is simply an array, however instead of placing items linearly we in
 I chose to use separate chaining with a linked list data structure for storing collisions, this keeps the complexity low. It would be more efficient in most cases to use a better performing list structure such as self-balancing binary trees to store the collisions however it increases a lot of additional code and complexity for a small increase in performance, it also may reduce performance on smaller hash table due to the increased insertion cost of a balancing binary tree. It would reduce the worst case in theory from $O(n)$ to $O(\log{}n)$ however I found there were not many collisions and hence only a small cost in traversing the list.
 
 \subsection{Insertion}
-Insertion is a worst-case $O(n)$ operation however it in most cases is $O(1)$, the code works by generating the hash for the word and mapping it to a position in the array, and then inserting the word into that position. Each position contains a linked list to deal with possible collisions of a different word having the same hash, if the list already contains the same word the count of the node which is our linked list cell is increased to account for the same word being added again. If the word isn't found it's added to the end of the linked list.
+Insertion is a worst-case $O(n)$ operation however it in most cases is $O(1)$, the code works by generating the hash for the word and mapping it to a position in the array, and then inserting the word into that position. Each position contains a linked list to deal with possible collisions of a different word having the same hash, if the list already contains the same word the count of the node which is our linked list cell is increased to account for the same word being added again. If the word is not found it is added to the end of the linked list.
 
 \begin{figure}[!htp]
 \centering
@@ -117,7 +117,7 @@ Insertion is a worst-case $O(n)$ operation however it in most cases is $O(1)$, t
 In the implementation, the WordNode class is a the cell that represents the linked lists in the hash table, each WordNode can hold a word, the count of how many times it has been added and an optional pointer to another WordNode. The bucket array is simply an array of pointers to the root WordNodes which form the linked lists for each bucket.
 
 \subsection{Deletion}
-Removing a word works very similar to insertion but in reverse. First we find the bucket for the word by calculating the index of the bucket it's stored at using it's hash. If the bucket is not empty then the linked list at the bucket is traversed until it finds the node for the word. If the node has a count greater than one we remove the word by simply decreasing the count which represents the number of times it has been added to the word store. If however the count is 1 we remove the node completely by altering the pointers in the linked list, the parent's next node is set to the next node of the one we are removing (it may be null). The deletion method has the same time complexity as the addition, with $O(1)$ on average and $O(n)$ at worst.
+Removing a word works very similar to insertion but in reverse. First we find the bucket for the word by calculating the index of the bucket it is stored at using it's hash. If the bucket is not empty then the linked list at the bucket is traversed until it finds the node for the word. If the node has a count greater than one we remove the word by simply decreasing the count which represents the number of times it has been added to the word store. If however the count is 1 we remove the node completely by altering the pointers in the linked list, the parent's next node is set to the next node of the one we are removing (it may be null). The deletion method has the same time complexity as the addition, with $O(1)$ on average and $O(n)$ at worst.
 
 \begin{figure}[!htp]
 \centering
@@ -165,18 +165,18 @@ The hash function is the most important part of the hash table, it should distri
 
 The first attempt at a hash function was simply adding the ascii value of each character multiplied by a prime to ensure that same letters but different orders resulted in different hashes. This worked okay however later tried more algorithms for generating a hash, two of which where djb2 \cite{hashfunctionsdjb2} and FNV \cite{hashfunctionsfnv}, both offer an improvement however I chose djb2 as it resulted in slightly less collisions on my test data. It operates on bytes of data rather than characters and follows a similar pattern by multiplying by a number before adding the next byte. However it uses bit shifts to achieve the multiplication as it is much faster. The computing the hash is often the slowest part of a hash table and hence we aim to make it as fast as possible but still providing a good enough result to avoid collisions.
 
-Once we have a 32bit integer as a hash for our word, we need to map the integer to a bucket in our hash table. Taking the modulus of the integer would work however it is relatively slow so instead we use a bitwise AND operation on the lower bits of the integer, this can mean we don't always use the full information available in the hash but performs faster than using modulus. A requirement of doing a bitwise AND instead of modulus is making sure that table size is a power of two. This works as to map the hash to the bucket we take the n rightmost number of bits, each additional bit increases our output size by double, so if the table size is $2^n$ in size, we use the n most significant bits.
+Once we have a 32bit integer as a hash for our word, we need to map the integer to a bucket in our hash table. Taking the modulus of the integer would work however it is relatively slow so instead we use a bitwise AND operation on the lower bits of the integer, this can mean we don not always use the full information available in the hash but performs faster than using modulus. A requirement of doing a bitwise AND instead of modulus is making sure that table size is a power of two. This works as to map the hash to the bucket we take the n rightmost number of bits, each additional bit increases our output size by double, so if the table size is $2^n$ in size, we use the n most significant bits.
 
 \section{Comparison}
 
 In order to show the hash table's performance and verify it's big-O category I compared it against a simple Array and count data structure and a Binary Tree data structure. The Array implementation was also used as a comparison whilst developing the hash table version.
 
-The first test is shown in Figure \ref{fig:add_empty_chart}
+The first test is shown in Figure \ref{fig:add_chart}
 
 \begin{figure}[!htb]
 \begin{tikzpicture}
     \begin{axis}[
-    		title={Add n words to empty word store},
+    		title={Add n words to word store},
     		ymin=0,
     		xmode=log,
             width=0.9\textwidth,
@@ -196,55 +196,21 @@ The first test is shown in Figure \ref{fig:add_empty_chart}
 			scaled y ticks=false,
 			xticklabel style={/pgf/number format/fixed},
 			scaled x ticks=false,
-            ylabel={Time in nanoseconds (ns)},
-            xlabel={Number of words},
+            ylabel={Time to add 1000 words in nanoseconds (ns)},
+            xlabel={Number of words in word store},
             axis on top
         ]
-        \addplot[ultra thick, smooth, tension=0.2, draw=orange] table[x=size,y=ARRAY]{\addwordsdata};
-        \addplot[ultra thick, smooth, tension=0.2, draw=red] table[x=size,y=BINARY_TREE]{\addwordsdata};
-        \addplot[ultra thick, smooth, tension=0.2, draw=blue] table[x=size,y=HASH_TABLE]{\addwordsdata};
+        \addplot[only marks, mark=x, mark options={solid}, color=orange] table[x=size,y=ARRAY]{\addwords};
+        \addplot[mark=none,color=orange] table[x=size,y={create col/linear regression={y=ARRAY}}] {\addwords};
+        \addplot[only marks, mark=x, mark options={solid}, color=red] table[x=size,y=BINARY_TREE]{\addwords};
+        \addplot[mark=none,color=red] table[x=size,y={create col/linear regression={y=BINARY_TREE}}] {\addwords};
+        \addplot[only marks, mark=x, mark options={solid}, color=blue] table[x=size,y=HASH_TABLE]{\addwords};
+        \addplot[mark=none,color=blue] table[x=size,y={create col/linear regression={y=HASH_TABLE}}] {\addwords};
         \legend{Array, Binary Tree, Hash Table}
     \end{axis}
 \end{tikzpicture}
 \caption{Tests performed on an Intel Core i7-3770K @ 3.5Ghz}
-\label{fig:ad_chart}
-\end{figure}
-
-\begin{figure}[!htb]
-\begin{tikzpicture}
-    \begin{axis}[
-    		title={Add n words to non empty word store},
-    		ymin=0,
-    		xmode=log,
-            width=0.9\textwidth,
-            height=0.4\textwidth,
-            legend style={
-            	draw=none,
-            	fill=none, 
-            	at={(0.5,-0.25)},
-                anchor=north,
-                legend columns=-1,
-                /tikz/every even column/.append style={column sep=0.5cm}
-            },
-            ytick style={draw=none},
-            nodes near coords align={vertical},
-            axis lines*=left,
-            yticklabel style={/pgf/number format/fixed},
-			scaled y ticks=false,
-			xticklabel style={/pgf/number format/fixed},
-			scaled x ticks=false,
-            ylabel={Time in nanoseconds (ns)},
-            xlabel={Number of words},
-            axis on top
-        ]
-        \addplot[ultra thick, smooth, tension=0.2, draw=orange] table[x=size,y=ARRAY]{\addwordsnonemptydata};
-        \addplot[ultra thick, smooth, tension=0.2, draw=red] table[x=size,y=BINARY_TREE]{\addwordsnonemptydata};
-        \addplot[ultra thick, smooth, tension=0.2, draw=blue] table[x=size,y=HASH_TABLE]{\addwordsnonemptydata};
-        \legend{Array, Binary Tree, Hash Table}
-    \end{axis}
-\end{tikzpicture}
-\caption{Tests performed on an Intel Core i7-3770K @ 3.5Ghz}
-\label{fig:add_empty_chart}
+\label{fig:add_chart}
 \end{figure}
 
 \begin{figure}[!htb]
@@ -272,13 +238,16 @@ The first test is shown in Figure \ref{fig:add_empty_chart}
 			scaled y ticks=false,
 			xticklabel style={/pgf/number format/fixed},
 			scaled x ticks=false,
-            ylabel={Time in nanoseconds (ns)},
-            xlabel={Number of words},
+            ylabel={Time to add 1000 words in nanoseconds (ns)},
+            xlabel={Number of words in word store},
             axis on top
         ]
-        \addplot[ultra thick, smooth, tension=0.07, draw=orange] table[x=size,y=ARRAY]{\countwords};
-        \addplot[ultra thick, smooth, tension=0.1, draw=red] table[x=size,y=BINARY_TREE]{\countwords};
-        \addplot[ultra thick, smooth, tension=0.1, draw=blue] table[x=size,y=HASH_TABLE]{\countwords};
+        \addplot[only marks, mark=x, mark options={solid}, color=orange] table[x=size,y=ARRAY]{\addwords};
+        \addplot[mark=none,color=orange] table[x=size,y={create col/linear regression={y=ARRAY}}] {\addwords};
+        \addplot[only marks, mark=x, mark options={solid}, color=red] table[x=size,y=BINARY_TREE]{\addwords};
+        \addplot[mark=none,color=red] table[x=size,y={create col/linear regression={y=BINARY_TREE}}] {\addwords};
+        \addplot[only marks, mark=x, mark options={solid}, color=blue] table[x=size,y=HASH_TABLE]{\addwords};
+        \addplot[mark=none,color=blue] table[x=size,y={create col/linear regression={y=HASH_TABLE}}] {\addwords};
         \legend{Array, Binary Tree, Hash Table}
     \end{axis}
 \end{tikzpicture}
@@ -311,13 +280,16 @@ The first test is shown in Figure \ref{fig:add_empty_chart}
 			scaled y ticks=false,
 			xticklabel style={/pgf/number format/fixed},
 			scaled x ticks=false,
-            ylabel={Time in nanoseconds (ns)},
-            xlabel={Number of words},
+            ylabel={Time to add 1000 words in nanoseconds (ns)},
+            xlabel={Number of words in word store},
             axis on top
         ]
-        \addplot[ultra thick, smooth, tension=0.1, draw=orange] table[x=size,y=ARRAY]{\removewords};
-        \addplot[ultra thick, smooth, tension=0.2, draw=red] table[x=size,y=BINARY_TREE]{\removewords};
-        \addplot[ultra thick, smooth, tension=0.2, draw=blue] table[x=size,y=HASH_TABLE]{\removewords};
+        \addplot[only marks, mark=x, mark options={solid}, color=orange] table[x=size,y=ARRAY]{\addwords};
+        \addplot[mark=none,color=orange] table[x=size,y={create col/linear regression={y=ARRAY}}] {\addwords};
+        \addplot[only marks, mark=x, mark options={solid}, color=red] table[x=size,y=BINARY_TREE]{\addwords};
+        \addplot[mark=none,color=red] table[x=size,y={create col/linear regression={y=BINARY_TREE}}] {\addwords};
+        \addplot[only marks, mark=x, mark options={solid}, color=blue] table[x=size,y=HASH_TABLE]{\addwords};
+        \addplot[mark=none,color=blue] table[x=size,y={create col/linear regression={y=HASH_TABLE}}] {\addwords};
         \legend{Array, Binary Tree, Hash Table}
     \end{axis}
 \end{tikzpicture}
