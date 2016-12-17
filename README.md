@@ -7,6 +7,12 @@ deletion and count of a word.
 
 `gradlew idea`
 
+## Generating tex document
+
+Run WordTest if necessary to generate data in csv format in the docs/ directory
+
+Note: Must have LaTeX installed as well as pygments for python 2.7
+
 ## Build
 
 `gradlew build`
