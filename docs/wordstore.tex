@@ -242,6 +242,9 @@
 \pgfplotstableread[col sep = comma]{addwords.csv}\addwords
 \pgfplotstableread[col sep = comma]{countwords.csv}\countwords
 \pgfplotstableread[col sep = comma]{removewords.csv}\removewords
+\pgfplotstableread[col sep = comma]{addwordstable.csv}\addwordstable
+\pgfplotstableread[col sep = comma]{countwordstable.csv}\countwordstable
+\pgfplotstableread[col sep = comma]{removewordstable.csv}\removewordstable
 % Title section
 \usepackage{titlesec}% http://ctan.org/pkg/titlesec
 \titleformat{\section}%
@@ -383,7 +386,7 @@ The first test is shown in Figure \ref{fig:add_chart}, it shows the trend of all
 			scaled y ticks=false,
 			xticklabel style={/pgf/number format/fixed},
 			scaled x ticks=false,
-            ylabel={Time to add 10000 words in nanoseconds (ns)},
+            ylabel={Time to add 10000 words in nanoseconds / ns},
             xlabel={Number of words in word store},
             axis on top
         ]
@@ -427,7 +430,7 @@ The count test data is shown in Figure \ref{fig:count_chart}, the Array data is 
 			scaled y ticks=false,
 			xticklabel style={/pgf/number format/fixed},
 			scaled x ticks=false,
-            ylabel={Time to add 10000 words in nanoseconds (ns)},
+            ylabel={Time to add 10000 words in nanoseconds / ns},
             xlabel={Number of words in word store},
             axis on top
         ]
@@ -471,7 +474,7 @@ Hash Tables are a large improvement over a simple 'array and count' structure, t
 			scaled y ticks=false,
 			xticklabel style={/pgf/number format/fixed},
 			scaled x ticks=false,
-            ylabel={Time to add 10000 words in nanoseconds (ns)},
+            ylabel={Time to add 10000 words in nanoseconds / ns},
             xlabel={Number of words in word store},
             axis on top
         ]
@@ -505,15 +508,14 @@ Hash Tables are a large improvement over a simple 'array and count' structure, t
 \caption{Add n words to word store} 
 \label{tab:add_data} 
 \pgfplotstabletypeset[
-    string type,
     string replace*={nan}{N/A},
-    columns/size/.style={column name=Number of words, column type={|l}},
-    columns/ARRAY/.style={column name=Array (ns), column type={|l}},
-    columns/BINARY_TREE/.style={column name=Binary Tree (ns), column type={|l}},
-    columns/HASH_TABLE/.style={column name=Hash Table (ns), column type={|l|}},
+    columns/size/.style={string type, column name=Number of words, column type={|l}},
+    columns/ARRAY/.style={column name=Array / ns, column type={|l}, /pgf/number format/fixed},
+    columns/BINARY_TREE/.style={column name=Binary Tree / ns, column type={|l}, /pgf/number format/fixed},
+    columns/HASH_TABLE/.style={column name=Hash Table / ns, column type={|l|}, /pgf/number format/fixed},
     every head row/.style={before row=\hline,after row=\hline},
     every last row/.style={after row=\hline},
-    ]{\addwords}
+    ]{\addwordstable}
 \end{table}
 
 \begin{table}[!htb]
@@ -521,15 +523,14 @@ Hash Tables are a large improvement over a simple 'array and count' structure, t
 \caption{Count n words in word store} 
 \label{tab:count_data} 
 \pgfplotstabletypeset[
-    string type,
     string replace*={nan}{N/A},
-    columns/size/.style={column name=Number of words, column type={|l}},
-    columns/ARRAY/.style={column name=Array (ns), column type={|l}},
-    columns/BINARY_TREE/.style={column name=Binary Tree (ns), column type={|l}},
-    columns/HASH_TABLE/.style={column name=Hash Table (ns), column type={|l|}},
+    columns/size/.style={string type, column name=Number of words, column type={|l}},
+    columns/ARRAY/.style={column name=Array / ns, column type={|l}, /pgf/number format/fixed},
+    columns/BINARY_TREE/.style={column name=Binary Tree / ns, column type={|l}, /pgf/number format/fixed},
+    columns/HASH_TABLE/.style={column name=Hash Table / ns, column type={|l|}, /pgf/number format/fixed},
     every head row/.style={before row=\hline,after row=\hline},
     every last row/.style={after row=\hline},
-    ]{\countwords}
+    ]{\countwordstable}
 \end{table}
 
 \begin{table}[!htb]
@@ -537,15 +538,14 @@ Hash Tables are a large improvement over a simple 'array and count' structure, t
 \caption{Remove n words from word store} 
 \label{tab:remove_data} 
 \pgfplotstabletypeset[
-    string type,
     string replace*={nan}{N/A},
-    columns/size/.style={column name=Number of words, column type={|l}},
-    columns/ARRAY/.style={column name=Array (ns), column type={|l}},
-    columns/BINARY_TREE/.style={column name=Binary Tree (ns), column type={|l}},
-    columns/HASH_TABLE/.style={column name=Hash Table (ns), column type={|l|}},
+    columns/size/.style={string type, column name=Number of words, column type={|l}},
+    columns/ARRAY/.style={column name=Array / ns, column type={|l}, /pgf/number format/fixed},
+    columns/BINARY_TREE/.style={column name=Binary Tree / ns, column type={|l}, /pgf/number format/fixed},
+    columns/HASH_TABLE/.style={column name=Hash Table / ns, column type={|l|}, /pgf/number format/fixed},
     every head row/.style={before row=\hline,after row=\hline},
     every last row/.style={after row=\hline},
-    ]{\removewords}
+    ]{\removewordstable}
 \end{table}
 
 \FloatBarrier
