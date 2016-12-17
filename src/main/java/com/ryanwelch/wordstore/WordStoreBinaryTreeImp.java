@@ -15,19 +15,6 @@ public class WordStoreBinaryTreeImp implements WordStore {
 
     public WordStoreBinaryTreeImp() {}
 
-    private void add(String word, WordNode node) {
-        int value = word.compareTo(node.getWord());
-        if(value < 0) {
-            if(node.hasLeftNode()) add(word, node.getLeftNode());
-            else node.setLeftNode(new WordNode(word));
-        } else if(value > 0) {
-            if(node.hasRightNode()) add(word, node.getRightNode());
-            else node.setRightNode(new WordNode(word));
-        } else {
-            node.incrementCount();
-        }
-    }
-
     @Override
     public void add(String word) {
         if(rootNode == null) {
@@ -35,19 +22,27 @@ public class WordStoreBinaryTreeImp implements WordStore {
             return;
         }
 
-        add(word, rootNode);
-    }
-
-    public int getCount(String word, WordNode node) {
-        int value = word.compareTo(node.getWord());
-        if(value < 0) {
-            if(node.getLeftNode() != null) return getCount(word, node.getLeftNode());
-            else return 0;
-        } else if(value > 0) {
-            if(node.getRightNode() != null) return getCount(word, node.getRightNode());
-            else return 0;
-        } else {
-            return node.getCount();
+        WordNode node = rootNode;
+        while(node != null) {
+            int value = word.compareTo(node.getWord());
+            if(value < 0) {
+                if(node.hasLeftNode()) {
+                    node = node.getLeftNode();
+                } else {
+                    node.setLeftNode(new WordNode(word));
+                    break;
+                }
+            } else if(value > 0) {
+                if(node.hasRightNode()) {
+                    node = node.getRightNode();
+                } else {
+                    node.setRightNode(new WordNode(word));
+                    break;
+                }
+            } else {
+                node.incrementCount();
+                break;
+            }
         }
     }
 
@@ -57,7 +52,21 @@ public class WordStoreBinaryTreeImp implements WordStore {
             return 0;
         }
 
-        return getCount(word, rootNode);
+        WordNode node = rootNode;
+        while(node != null) {
+            int value = word.compareTo(node.getWord());
+            if(value < 0) {
+                if(node.getLeftNode() != null) node = node.getLeftNode();
+                else return 0;
+            } else if(value > 0) {
+                if(node.getRightNode() != null) node = node.getRightNode();
+                else return 0;
+            } else {
+                return node.getCount();
+            }
+        }
+
+        return 0;
     }
 
     private void remove(String word, WordNode node, WordNode parent) {
@@ -99,83 +108,74 @@ public class WordStoreBinaryTreeImp implements WordStore {
         private String word;
         private int count;
 
-        public WordNode(String word, int count) {
+        WordNode(String word, int count) {
             this.word = word;
             this.count = count;
         }
 
-        public WordNode(String word) {
+        WordNode(String word) {
             this(word, 1);
         }
 
-        public void setWord(String word) {
+        void setWord(String word) {
             this.word = word;
         }
 
-        public String getWord() {
+        String getWord() {
             return word;
         }
 
-        public int getCount() {
+        int getCount() {
             return count;
         }
 
-        public void setCount(int count) {
+        void setCount(int count) {
             this.count = count;
         }
 
-        public void incrementCount() {
+        void incrementCount() {
             this.count++;
         }
 
-        public void decrementCount() {
+        void decrementCount() {
             this.count--;
         }
 
-        public boolean hasLeftNode() {
+        boolean hasLeftNode() {
             return leftNode != null;
         }
 
-        public WordNode getLeftNode() {
+        WordNode getLeftNode() {
             return leftNode;
         }
 
-        public void setLeftNode(WordNode leftNode) {
+        void setLeftNode(WordNode leftNode) {
             this.leftNode = leftNode;
         }
 
-        public boolean hasRightNode() {
+        boolean hasRightNode() {
             return rightNode != null;
         }
 
-        public WordNode getRightNode() {
+        WordNode getRightNode() {
             return rightNode;
         }
 
-        public void setRightNode(WordNode rightNode) {
+        void setRightNode(WordNode rightNode) {
             this.rightNode = rightNode;
         }
 
-        public void removeNode(WordNode node) {
-            if(leftNode == node) leftNode = null;
-            else if(rightNode == node) rightNode = null;
-        }
-
-        public void replaceNode(WordNode node, WordNode newNode) {
+        void replaceNode(WordNode node, WordNode newNode) {
             if(leftNode == node) leftNode = newNode;
             else if(rightNode == node) rightNode = newNode;
         }
 
-        public boolean isLeaf() {
-            return leftNode == null && rightNode == null;
-        }
-
-        public WordNode getMinNode() {
+        WordNode getMinNode() {
             if(leftNode == null) return this;
             else return leftNode.getMinNode();
         }
 
-        public WordNode getMaxNode() {
+        WordNode getMaxNode() {
             if(rightNode == null) return this;
             else return rightNode.getMinNode();
         }
